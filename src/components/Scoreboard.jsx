@@ -17,6 +17,7 @@ export default function Scoreboard() {
   const boundaryCount = useGameStore((state) => state.boundaryCount);
   const shotMode = useGameStore((state) => state.shotMode);
   const deliveryInfo = useGameStore((state) => state.deliveryInfo);
+  const pitchCondition = useGameStore((state) => state.pitchCondition);
   const selectedMode = getShotModeConfig(shotMode);
   const requiredRuns = getRequiredRuns(score, targetScore);
   const ballMarkers = Array.from({ length: maxBalls }, (_, index) => history[index] ?? null);
@@ -81,6 +82,10 @@ export default function Scoreboard() {
           <div className="mt-2 flex items-center justify-between gap-3">
             <span className="text-slate-300">Ball</span>
             <span className="max-w-24 truncate font-black text-white">{deliveryInfo?.name ?? lastTiming ?? 'Ready'}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="text-slate-300">Pitch</span>
+            <span className="font-black capitalize text-white">{deliveryInfo?.surface ?? pitchCondition}</span>
           </div>
         </div>
       </div>

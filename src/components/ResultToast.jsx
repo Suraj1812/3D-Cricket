@@ -18,7 +18,7 @@ export default function ResultToast() {
 
   return (
     <div className="pointer-events-none absolute right-4 top-28 z-20 hidden w-56 sm:block">
-      <div className={`rounded-lg border px-4 py-3 shadow-panel backdrop-blur-xl ${tone}`}>
+      <div className={`hud-pop rounded-lg border px-4 py-3 shadow-panel backdrop-blur-xl ${tone}`}>
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-lg font-black leading-tight">{lastOutcome.label}</p>

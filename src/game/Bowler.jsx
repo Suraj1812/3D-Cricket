@@ -23,27 +23,30 @@ export default function Bowler() {
     }
 
     const state = useGameStore.getState();
-    const isRunning = state.phase === 'playing' && state.ballState === 'runup';
+    const isActiveDelivery = state.phase === 'playing' && state.ballState !== 'settled';
 
-    if (isRunning) {
-      runTime.current = Math.min(RUNUP_DURATION, runTime.current + delta);
+    if (isActiveDelivery) {
+      runTime.current = Math.min(RUNUP_DURATION + 0.72, runTime.current + delta);
     }
 
     const progress = easeInOutCubic(runTime.current / RUNUP_DURATION);
-    const z = phase === 'playing' ? lerp(-23.5, -13.55, progress) : -18.5;
+    const followThrough = Math.max(0, Math.min(1, (runTime.current - RUNUP_DURATION) / 0.62));
+    const z = phase === 'playing' ? lerp(-23.5, -13.55, progress) + followThrough * 1.65 : -18.5;
     const stride = Math.sin(runTime.current * 16);
 
     groupRef.current.position.set(0, 0, z);
-    groupRef.current.rotation.y = Math.PI;
+    groupRef.current.rotation.y = Math.PI + followThrough * 0.18;
+    groupRef.current.rotation.x = -followThrough * 0.05;
     gameRefs.bowler.position.copy(groupRef.current.position);
 
     if (armRef.current) {
       const releaseWindup = progress > 0.72 ? (progress - 0.72) / 0.28 : 0;
-      armRef.current.rotation.x = -0.35 - releaseWindup * 2.25 + stride * 0.18;
+      armRef.current.rotation.x = -0.35 - releaseWindup * 2.25 + stride * 0.18 + followThrough * 1.1;
+      armRef.current.rotation.z = 0.24 - followThrough * 0.5;
     }
 
     if (legRef.current) {
-      legRef.current.rotation.x = stride * 0.42;
+      legRef.current.rotation.x = stride * 0.42 - followThrough * 0.3;
     }
   });
 

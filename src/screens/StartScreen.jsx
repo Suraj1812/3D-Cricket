@@ -7,7 +7,7 @@ export default function StartScreen() {
 
   return (
     <div className="absolute inset-0 z-30 grid place-items-center px-4">
-      <div className="glass-panel w-full max-w-md rounded-lg p-6 text-center">
+      <div className="glass-panel screen-enter w-full max-w-md rounded-lg p-6 text-center">
         <p className="text-sm font-bold uppercase text-amber-200">One-over chase</p>
         <h1 className="mt-2 text-4xl font-black text-white">3D Cricket</h1>
         <div className="mt-5 grid grid-cols-3 gap-2 text-left text-xs font-bold text-slate-200">

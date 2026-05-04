@@ -16,12 +16,12 @@ export default function TouchControls() {
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-4 pb-5 sm:pb-7">
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3">
-        <div className="glass-panel pointer-events-auto flex w-full max-w-md items-center justify-between gap-2 rounded-lg p-1.5">
+        <div className="glass-panel pointer-events-auto grid w-full max-w-lg grid-cols-5 gap-1.5 rounded-lg p-1.5">
           {SHOT_MODE_LIST.map((mode) => (
             <button
               type="button"
               key={mode.id}
-              className={`min-h-10 flex-1 rounded-md px-3 py-2 text-sm font-black transition ${
+              className={`min-h-10 rounded-md px-2 py-2 text-xs font-black transition sm:text-sm ${
                 shotMode === mode.id
                   ? 'bg-white text-slate-950'
                   : 'bg-white/8 text-slate-100 hover:bg-white/14'
@@ -36,10 +36,10 @@ export default function TouchControls() {
           ))}
         </div>
 
-        <div className="glass-panel flex w-full max-w-md flex-col items-center rounded-lg px-4 py-3">
+        <div className="glass-panel flex w-full max-w-lg flex-col items-center rounded-lg px-4 py-3">
           <div className="mb-3 flex w-full items-center justify-between gap-3 text-xs font-bold uppercase text-slate-200">
             <span>{deliveryInfo?.name ?? 'Bowler'}</span>
-            <span>{deliveryInfo?.pace ? `${deliveryInfo.pace} kph` : 'Ready'}</span>
+            <span>{deliveryInfo?.pace ? `${deliveryInfo.pace} kph - ${deliveryInfo.surface}` : 'Ready'}</span>
           </div>
           <TimingMeter />
         </div>

@@ -10,13 +10,15 @@ import {
   calculateRunningRuns,
   createDeliveryVelocity,
   createHitVelocity,
+  createShotSpin,
   distanceFromCenter,
   evaluateShotTiming,
   getDeliveryProfile,
+  getPitchSurface,
   isThreateningStumps,
   resolveBounce,
   speed2D,
-  stepBall,
+  stepBallWithForces,
 } from './Physics.js';
 import { useGameStore } from '../store/useGameStore.js';
 import { gameRefs } from '../utils/gameRefs.js';
@@ -30,6 +32,7 @@ function createSimulation() {
   return {
     deliveryId: 0,
     deliveryProfile: null,
+    surface: null,
     phase: 'idle',
     timer: 0,
     releaseTime: 0,
@@ -38,6 +41,7 @@ function createSimulation() {
     timing: null,
     shotMode: null,
     bouncesAfterHit: 0,
+    deliveryBounces: 0,
     lastSwingRequestId: 0,
     hint: 'idle',
   };
@@ -50,6 +54,7 @@ export default function Ball() {
   const trailBuffer = useMemo(() => new Float32Array(TRAIL_POINTS * 3), []);
   const position = useRef(hiddenPosition.clone());
   const velocity = useRef(new THREE.Vector3());
+  const spin = useRef(new THREE.Vector3());
   const simulation = useRef(createSimulation());
   const nextDeliveryTimer = useRef(null);
 
@@ -91,11 +96,11 @@ export default function Ball() {
     }
 
     if (sim.phase === 'runup') {
-      updateRunup(sim, position.current, velocity.current);
+      updateRunup(sim, position.current, velocity.current, spin.current);
     } else if (sim.phase === 'released') {
-      updateReleasedBall(sim, position.current, velocity.current, delta, store);
+      updateReleasedBall(sim, position.current, velocity.current, spin.current, delta, store);
     } else if (sim.phase === 'hit') {
-      updateHitBall(sim, position.current, velocity.current, delta);
+      updateHitBall(sim, position.current, velocity.current, spin.current, delta);
     }
 
     syncSharedRefs(position.current, velocity.current, sim.phase !== 'idle');
@@ -109,29 +114,42 @@ export default function Ball() {
       nextDeliveryTimer.current = null;
     }
 
+    const store = useGameStore.getState();
+    const context = {
+      requiredRuns: Math.max(0, store.targetScore - store.score),
+      remainingBalls: Math.max(1, store.maxBalls - store.balls),
+      lastBoundary: store.lastRuns >= 4,
+    };
+    const surface = getPitchSurface(store.pitchCondition);
+
     Object.assign(sim, createSimulation(), {
       deliveryId: id,
-      deliveryProfile: getDeliveryProfile(id),
+      deliveryProfile: getDeliveryProfile(id, context),
+      surface,
       phase: 'runup',
-      lastSwingRequestId: useGameStore.getState().swingRequestId,
+      lastSwingRequestId: store.swingRequestId,
     });
 
-    useGameStore.getState().setDeliveryInfo({
+    store.setDeliveryInfo({
       name: sim.deliveryProfile.name,
       pace: sim.deliveryProfile.pace,
+      surface: surface.name,
+      length: sim.deliveryProfile.length,
     });
     ballPosition.copy(RELEASE_POSITION);
     ballVelocity.set(0, 0, 0);
+    spin.current.copy(sim.deliveryProfile.spin);
     resetTrail(trailBuffer, ballPosition);
     syncSharedRefs(ballPosition, ballVelocity, false);
   }
 
-  function updateRunup(sim, ballPosition, ballVelocity) {
+  function updateRunup(sim, ballPosition, ballVelocity, ballSpin) {
     const progress = clamp(sim.timer / RUNUP_DURATION, 0, 1);
     const handZ = lerp(-23.5, RELEASE_POSITION.z, progress);
 
     ballPosition.set(0.28, 1.52 + Math.sin(progress * Math.PI) * 0.18, handZ);
     ballVelocity.set(0, 0, 0);
+    ballSpin.copy(sim.deliveryProfile?.spin ?? new THREE.Vector3());
 
     handleSwingRequest(sim, ballPosition, ballVelocity);
 
@@ -139,17 +157,30 @@ export default function Ball() {
       sim.phase = 'released';
       sim.releaseTime = sim.timer;
       ballPosition.copy(RELEASE_POSITION);
-      ballVelocity.copy(createDeliveryVelocity(sim.deliveryId));
+      ballVelocity.copy(createDeliveryVelocity(sim.deliveryProfile, sim.surface));
+      ballSpin.copy(sim.deliveryProfile.spin);
       useGameStore.getState().setBallState('released', 'Ball released');
     }
   }
 
-  function updateReleasedBall(sim, ballPosition, ballVelocity, delta, store) {
-    stepBall(ballPosition, ballVelocity, delta, 0.999);
-    resolveBounce(ballPosition, ballVelocity, {
+  function updateReleasedBall(sim, ballPosition, ballVelocity, ballSpin, delta, store) {
+    stepBallWithForces(ballPosition, ballVelocity, ballSpin, delta, {
+      drag: 0.015,
+      swing: sim.deliveryProfile.swing,
+      seam: sim.deliveryProfile.seam,
+      surface: sim.surface,
+    });
+    const bounced = resolveBounce(ballPosition, ballVelocity, {
       restitution: 0.6,
       lateralDamping: 0.9,
+      surface: sim.surface,
+      seam: sim.deliveryProfile.seam,
+      spin: ballSpin,
     });
+
+    if (bounced) {
+      sim.deliveryBounces += 1;
+    }
 
     if (ballPosition.z >= HIT_ZONE.minZ && ballPosition.z <= HIT_ZONE.maxZ && sim.hint !== 'hittable') {
       sim.hint = 'hittable';
@@ -169,11 +200,21 @@ export default function Ball() {
     }
   }
 
-  function updateHitBall(sim, ballPosition, ballVelocity, delta) {
-    stepBall(ballPosition, ballVelocity, delta, 0.996);
+  function updateHitBall(sim, ballPosition, ballVelocity, ballSpin, delta) {
+    stepBallWithForces(ballPosition, ballVelocity, ballSpin, delta, {
+      drag: sim.shotMode === 'loft' ? 0.013 : 0.018,
+      swing: 0,
+      seam: 0,
+      surface: sim.surface,
+      postContact: true,
+      magnus: sim.shotMode === 'loft' ? 0.014 : 0.02,
+    });
     const bounced = resolveBounce(ballPosition, ballVelocity, {
       restitution: 0.43,
       lateralDamping: 0.78,
+      surface: sim.surface,
+      spin: ballSpin,
+      speedInfluence: 0.012,
     });
 
     if (bounced) {
@@ -232,11 +273,13 @@ export default function Ball() {
     sim.shotMode = shotMode;
     sim.bouncesAfterHit = 0;
     ballVelocity.copy(createHitVelocity(ballPosition, timing, sim.deliveryId, shotMode));
+    spin.current.copy(createShotSpin(timing, shotMode));
 
     store.setShotFeedback({
       timing: timing.label,
       label: `${timing.label} shot`,
     });
+    store.registerImpact(timing.quality === 'perfect' ? 'perfect' : 'contact');
     store.setBallState('hit', `${timing.label} shot`);
   }
 

@@ -6,6 +6,7 @@ import { gameRefs } from '../utils/gameRefs.js';
 
 export default function Bat() {
   const groupRef = useRef(null);
+  const bodyRef = useRef(null);
   const batRef = useRef(null);
   const swingProgress = useRef(1);
   const swingRequestId = useGameStore((state) => state.swingRequestId);
@@ -21,22 +22,36 @@ export default function Bat() {
       return;
     }
 
-    swingProgress.current = Math.min(1, swingProgress.current + delta * 4.8);
+    const shotMode = useGameStore.getState().shotMode;
+    const pose = getShotPose(shotMode);
+    swingProgress.current = Math.min(1, swingProgress.current + delta * pose.speed);
     const swing = easeOutCubic(swingProgress.current);
     const ready = 1 - swing;
+    const impact = Math.sin(Math.min(1, swingProgress.current) * Math.PI);
 
     groupRef.current.position.copy(gameRefs.batsman.position);
+    groupRef.current.rotation.set(impact * pose.bodyLean, Math.PI + impact * pose.bodyTurn, impact * pose.bodyRoll);
+
+    if (bodyRef.current) {
+      bodyRef.current.rotation.x = ready * -0.08 + impact * pose.bodyLean;
+      bodyRef.current.rotation.z = impact * pose.bodyRoll;
+    }
+
     batRef.current.rotation.set(
-      -0.88 + swing * 1.48,
-      -0.52 + swing * 1.05,
-      0.28 - swing * 1.35,
+      pose.readyRotation[0] + swing * pose.swingRotation[0],
+      pose.readyRotation[1] + swing * pose.swingRotation[1],
+      pose.readyRotation[2] + swing * pose.swingRotation[2],
     );
-    batRef.current.position.set(0.44 - swing * 0.28, 0.97 + ready * 0.08, -0.24 - swing * 0.26);
+    batRef.current.position.set(
+      pose.readyPosition[0] + swing * pose.swingPosition[0],
+      pose.readyPosition[1] + ready * 0.08 + impact * pose.lift,
+      pose.readyPosition[2] + swing * pose.swingPosition[2],
+    );
   });
 
   return (
     <group ref={groupRef} rotation={[0, Math.PI, 0]}>
-      <mesh position={[0, 1.16, 0]} castShadow>
+      <mesh ref={bodyRef} position={[0, 1.16, 0]} castShadow>
         <capsuleGeometry args={[0.34, 0.72, 8, 16]} />
         <meshStandardMaterial color="#fcf7ed" roughness={0.68} />
       </mesh>
@@ -111,4 +126,66 @@ export default function Bat() {
       </group>
     </group>
   );
+}
+
+function getShotPose(shotMode) {
+  const poses = {
+    defensive: {
+      speed: 6.2,
+      bodyLean: -0.05,
+      bodyTurn: 0.05,
+      bodyRoll: -0.03,
+      lift: -0.03,
+      readyPosition: [0.4, 1.02, -0.2],
+      swingPosition: [-0.1, -0.02, -0.08],
+      readyRotation: [-1.05, -0.42, 0.2],
+      swingRotation: [0.72, 0.32, -0.54],
+    },
+    drive: {
+      speed: 4.8,
+      bodyLean: -0.08,
+      bodyTurn: 0.08,
+      bodyRoll: -0.05,
+      lift: 0.02,
+      readyPosition: [0.44, 0.97, -0.24],
+      swingPosition: [-0.28, 0, -0.26],
+      readyRotation: [-0.88, -0.52, 0.28],
+      swingRotation: [1.48, 1.05, -1.35],
+    },
+    loft: {
+      speed: 4.35,
+      bodyLean: -0.12,
+      bodyTurn: 0.12,
+      bodyRoll: -0.08,
+      lift: 0.16,
+      readyPosition: [0.48, 1.0, -0.28],
+      swingPosition: [-0.34, 0, -0.32],
+      readyRotation: [-1.0, -0.6, 0.38],
+      swingRotation: [1.75, 1.2, -1.68],
+    },
+    sweep: {
+      speed: 5.15,
+      bodyLean: -0.2,
+      bodyTurn: -0.24,
+      bodyRoll: -0.18,
+      lift: -0.08,
+      readyPosition: [0.44, 0.78, -0.16],
+      swingPosition: [-0.34, 0, -0.42],
+      readyRotation: [-0.45, -0.85, 0.74],
+      swingRotation: [0.68, 1.75, -1.95],
+    },
+    pull: {
+      speed: 4.65,
+      bodyLean: 0.08,
+      bodyTurn: -0.18,
+      bodyRoll: 0.06,
+      lift: 0.08,
+      readyPosition: [0.5, 1.08, -0.16],
+      swingPosition: [-0.5, 0, -0.12],
+      readyRotation: [-1.32, -0.3, 0.42],
+      swingRotation: [1.35, 1.55, -1.22],
+    },
+  };
+
+  return poses[shotMode] ?? poses.drive;
 }

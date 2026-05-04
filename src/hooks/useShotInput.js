@@ -8,7 +8,7 @@ export function useShotInput() {
 
   useEffect(() => {
     function handleKeyDown(event) {
-      const modeIndex = ['Digit1', 'Digit2', 'Digit3'].indexOf(event.code);
+      const modeIndex = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5'].indexOf(event.code);
 
       if (modeIndex !== -1) {
         event.preventDefault();

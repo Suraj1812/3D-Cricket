@@ -15,7 +15,7 @@ export default function GameOverScreen() {
 
   return (
     <div className="absolute inset-0 z-30 grid place-items-center px-4">
-      <div className="glass-panel w-full max-w-md rounded-lg p-6 text-center">
+      <div className="glass-panel screen-enter w-full max-w-md rounded-lg p-6 text-center">
         <p className="text-sm font-bold uppercase text-emerald-200">{title}</p>
         <h2 className="mt-2 text-5xl font-black text-white">{score}</h2>
         <p className="mt-2 text-sm font-semibold text-slate-200">

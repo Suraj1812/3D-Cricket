@@ -1,6 +1,6 @@
 # 3D Cricket
 
-A complete 3D cricket mini-game built with React, Vite, Three.js, @react-three/fiber, minimal Drei helpers, Zustand, and Tailwind CSS.
+A polished 3D cricket chase game built with React, Vite, Three.js, @react-three/fiber, essential Drei helpers, Zustand, and Tailwind CSS.
 
 ## Setup
 
@@ -39,17 +39,20 @@ The app keeps high-frequency simulation work inside `useFrame` refs so React doe
 
 The 3D game is split into focused scene modules:
 
-- `Ground.js` builds the field, pitch, stumps, boundary, and lightweight stadium.
+- `Ground.js` builds the field, pitch, stumps, boundary boards, floodlights, animated crowd bowl, and pitch-surface visuals.
 - `Fielders.js` adds fielding positions and extra on-field life.
-- `Bowler.js` animates the AI run-up and delivery pose.
-- `Bat.js` renders the batsman and handles swing animation from player input.
-- `Ball.js` owns delivery variation, bounce, shot timing, wickets, ball trail, boundary detection, and scoring events.
-- `Physics.js` contains reusable vector physics, delivery profiles, shot-mode tuning, and timing calculations.
+- `Bowler.js` animates AI run-up, release rhythm, and follow-through.
+- `Bat.js` renders the batsman and blends shot-specific swing poses.
+- `Ball.js` owns delivery variation, bounce, shot timing, wickets, ball trail, boundary detection, camera impact events, and scoring.
+- `Physics.js` contains reusable vector physics, delivery profiles, swing, seam, spin, pitch-surface tuning, shot trajectories, and timing calculations.
+- `GameCamera.jsx` handles smooth gameplay tracking, impact shake, FOV changes, and ball-follow angles.
+- `useGameAudio.js` provides lightweight procedural impact audio without adding asset dependencies.
 
 ## Gameplay
 
 - Chase 24 from one over.
-- Select Drive, Loft, or Sweep for different risk and reward.
-- Bowler varies length, line, and pace.
+- Select Defend, Drive, Loft, Sweep, or Pull for different risk and reward.
+- Bowler varies length, line, pace, swing, seam, and spin based on match pressure.
+- Pitch surfaces rotate between dry, green, and dusty conditions.
 - Missed balls can beat the bat or hit the stumps.
-- Timing, ball-by-ball history, wickets, target, and result feedback are surfaced in the UI.
+- Timing, ball-by-ball history, wickets, run rate, target, match summary, and result feedback are surfaced in the UI.

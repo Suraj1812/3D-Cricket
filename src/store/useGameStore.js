@@ -5,9 +5,11 @@ import { SHOT_MODES } from '../utils/shotModes.js';
 const MAX_BALLS = 6;
 const TARGET_SCORE = 24;
 const MAX_WICKETS = 2;
+const PITCH_SEQUENCE = ['dry', 'green', 'dusty'];
 
 const initialState = {
   phase: 'start',
+  matchId: 0,
   score: 0,
   balls: 0,
   wickets: 0,
@@ -19,6 +21,8 @@ const initialState = {
   swingRequestId: 0,
   ballState: 'idle',
   shotMode: SHOT_MODES.drive.id,
+  pitchCondition: PITCH_SEQUENCE[0],
+  cameraMode: 'bat',
   message: 'Ready',
   lastTiming: null,
   lastRuns: null,
@@ -29,15 +33,21 @@ const initialState = {
   boundaryCount: 0,
   bestShot: null,
   matchResult: null,
+  impactEventId: 0,
+  impactType: null,
 };
 
 export const useGameStore = create((set, get) => ({
   ...initialState,
 
   startGame: () => {
+    const nextMatchId = get().matchId + 1;
+
     set({
       ...initialState,
+      matchId: nextMatchId,
       phase: 'playing',
+      pitchCondition: PITCH_SEQUENCE[(nextMatchId - 1) % PITCH_SEQUENCE.length],
       deliveryId: 1,
       ballState: 'runup',
       message: 'Bowler running in',
@@ -107,6 +117,18 @@ export const useGameStore = create((set, get) => ({
     set({ deliveryInfo });
   },
 
+  setCameraMode: (cameraMode) => {
+    set({ cameraMode });
+  },
+
+  registerImpact: (impactType = 'contact') => {
+    const state = get();
+    set({
+      impactEventId: state.impactEventId + 1,
+      impactType,
+    });
+  },
+
   completeDelivery: (outcome) => {
     const state = get();
 
@@ -128,6 +150,7 @@ export const useGameStore = create((set, get) => ({
     const matchResult = targetReached ? 'won' : allOut ? 'allOut' : overDone ? 'lost' : null;
     const timing = outcome.timing ?? state.lastTiming;
     const resultLabel = outcome.description ?? describeRuns(runs);
+    const impactType = outcome.wicket ? 'wicket' : runs >= 6 ? 'six' : runs >= 4 ? 'four' : runs > 0 ? 'run' : 'dot';
     const historyEntry = {
       id: outcome.deliveryId,
       runs,
@@ -160,6 +183,8 @@ export const useGameStore = create((set, get) => ({
       boundaryCount: state.boundaryCount + (runs >= 4 ? 1 : 0),
       bestShot: nextBestShot,
       matchResult,
+      impactEventId: state.impactEventId + 1,
+      impactType,
     });
 
     return {

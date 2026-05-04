@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
 import { FIELD_RADIUS } from './Physics.js';
+import { useGameStore } from '../store/useGameStore.js';
 
 function Stumps({ z }) {
   const stumpPositions = [-0.22, 0, 0.22];
@@ -176,6 +178,14 @@ function CrowdBowl() {
     }
   }, [dummy, palette]);
 
+  useFrame(({ clock }) => {
+    if (!meshRef.current) {
+      return;
+    }
+
+    meshRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.55) * 0.004;
+  });
+
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, 320]} castShadow receiveShadow>
       <boxGeometry args={[0.28, 0.34, 0.18]} />
@@ -220,6 +230,18 @@ function SightScreens() {
 }
 
 export default function Ground() {
+  const pitchCondition = useGameStore((state) => state.pitchCondition);
+  const pitchColor = {
+    dry: '#cfae77',
+    green: '#bba873',
+    dusty: '#c59a6a',
+  }[pitchCondition] ?? '#cfae77';
+  const pitchTopColor = {
+    dry: '#d6bd89',
+    green: '#c4b97e',
+    dusty: '#c99a6b',
+  }[pitchCondition] ?? '#d6bd89';
+
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -245,12 +267,12 @@ export default function Ground() {
 
       <mesh position={[0, 0.035, -0.9]} receiveShadow>
         <boxGeometry args={[3.25, 0.07, 17.8]} />
-        <meshStandardMaterial color="#cfae77" roughness={0.86} />
+        <meshStandardMaterial color={pitchColor} roughness={0.86} />
       </mesh>
 
       <mesh position={[0, 0.074, -0.9]} receiveShadow>
         <boxGeometry args={[2.62, 0.014, 16.8]} />
-        <meshStandardMaterial color="#d6bd89" roughness={0.88} />
+        <meshStandardMaterial color={pitchTopColor} roughness={0.88} />
       </mesh>
 
       <PitchWear />
