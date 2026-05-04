@@ -27,6 +27,8 @@ import { describeRuns } from '../utils/scoring.js';
 
 const hiddenPosition = new THREE.Vector3(0, BALL_RADIUS, 7);
 const TRAIL_POINTS = 24;
+const MAX_FRAME_DELTA = 0.24;
+const PHYSICS_STEP = 1 / 60;
 
 function createSimulation() {
   return {
@@ -79,9 +81,9 @@ export default function Ball() {
   }, [deliveryId, phase]);
 
   useFrame((_, rawDelta) => {
-    const store = useGameStore.getState();
+    let store = useGameStore.getState();
     const sim = simulation.current;
-    const delta = Math.min(rawDelta, 0.033);
+    const frameDelta = Math.min(rawDelta, MAX_FRAME_DELTA);
 
     if (store.phase !== 'playing' || sim.phase === 'idle') {
       syncMesh(ballGroupRef.current, shadowRef.current, position.current, velocity.current, false);
@@ -89,18 +91,31 @@ export default function Ball() {
       return;
     }
 
-    sim.timer += delta;
+    let remainingDelta = frameDelta;
 
-    if (sim.deliveryId !== store.deliveryId) {
-      resetDelivery(store.deliveryId, sim, position.current, velocity.current);
-    }
+    while (remainingDelta > 0) {
+      const delta = Math.min(remainingDelta, PHYSICS_STEP);
+      store = useGameStore.getState();
 
-    if (sim.phase === 'runup') {
-      updateRunup(sim, position.current, velocity.current, spin.current);
-    } else if (sim.phase === 'released') {
-      updateReleasedBall(sim, position.current, velocity.current, spin.current, delta, store);
-    } else if (sim.phase === 'hit') {
-      updateHitBall(sim, position.current, velocity.current, spin.current, delta);
+      if (store.phase !== 'playing' || sim.phase === 'idle') {
+        break;
+      }
+
+      if (sim.deliveryId !== store.deliveryId) {
+        resetDelivery(store.deliveryId, sim, position.current, velocity.current);
+      }
+
+      sim.timer += delta;
+
+      if (sim.phase === 'runup') {
+        updateRunup(sim, position.current, velocity.current, spin.current);
+      } else if (sim.phase === 'released') {
+        updateReleasedBall(sim, position.current, velocity.current, spin.current, delta, store);
+      } else if (sim.phase === 'hit') {
+        updateHitBall(sim, position.current, velocity.current, spin.current, delta);
+      }
+
+      remainingDelta -= delta;
     }
 
     syncSharedRefs(position.current, velocity.current, sim.phase !== 'idle');
