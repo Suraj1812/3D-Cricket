@@ -1,6 +1,5 @@
 import { Canvas } from '@react-three/fiber';
 import { Sky } from '@react-three/drei';
-import * as THREE from 'three';
 import Ball from '../game/Ball.js';
 import Bat from '../game/Bat.js';
 import Bowler from '../game/Bowler.js';
@@ -18,7 +17,7 @@ export default function GameCanvas() {
       camera={{ position: [0, 7.2, 16.2], fov: 42, near: 0.1, far: 130 }}
       dpr={[1, 1.75]}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
-      shadows={{ type: THREE.PCFShadowMap }}
+      shadows="percentage"
       onPointerDown={() => playShot()}
     >
       <color attach="background" args={['#9cc7d0']} />
