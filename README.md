@@ -40,7 +40,16 @@ The app keeps high-frequency simulation work inside `useFrame` refs so React doe
 The 3D game is split into focused scene modules:
 
 - `Ground.js` builds the field, pitch, stumps, boundary, and lightweight stadium.
+- `Fielders.js` adds fielding positions and extra on-field life.
 - `Bowler.js` animates the AI run-up and delivery pose.
 - `Bat.js` renders the batsman and handles swing animation from player input.
-- `Ball.js` owns delivery, bounce, shot timing, boundary detection, and scoring events.
-- `Physics.js` contains reusable vector physics and timing calculations.
+- `Ball.js` owns delivery variation, bounce, shot timing, wickets, ball trail, boundary detection, and scoring events.
+- `Physics.js` contains reusable vector physics, delivery profiles, shot-mode tuning, and timing calculations.
+
+## Gameplay
+
+- Chase 24 from one over.
+- Select Drive, Loft, or Sweep for different risk and reward.
+- Bowler varies length, line, and pace.
+- Missed balls can beat the bat or hit the stumps.
+- Timing, ball-by-ball history, wickets, target, and result feedback are surfaced in the UI.
