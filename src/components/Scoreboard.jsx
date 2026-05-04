@@ -2,9 +2,17 @@ import { formatDeliveryCount, formatOvers, getRequiredRuns, getRunRate } from '.
 import { useGameStore } from '../store/useGameStore.js';
 import { getShotModeConfig } from '../utils/shotModes.js';
 import { getFieldPlan } from '../utils/fielding.js';
+import { getShotPlacementConfig } from '../utils/shotPlacement.js';
+import FieldRadar from './FieldRadar.jsx';
 
 export default function Scoreboard() {
   const score = useGameStore((state) => state.score);
+  const batsmanRuns = useGameStore((state) => state.batsmanRuns);
+  const batters = useGameStore((state) => state.batters);
+  const strikerIndex = useGameStore((state) => state.strikerIndex);
+  const nonStrikerIndex = useGameStore((state) => state.nonStrikerIndex);
+  const partnershipRuns = useGameStore((state) => state.partnershipRuns);
+  const partnershipBalls = useGameStore((state) => state.partnershipBalls);
   const balls = useGameStore((state) => state.balls);
   const wickets = useGameStore((state) => state.wickets);
   const maxBalls = useGameStore((state) => state.maxBalls);
@@ -18,14 +26,23 @@ export default function Scoreboard() {
   const boundaryCount = useGameStore((state) => state.boundaryCount);
   const fieldingSaves = useGameStore((state) => state.fieldingSaves);
   const dotBalls = useGameStore((state) => state.dotBalls);
+  const extras = useGameStore((state) => state.extras);
+  const momentum = useGameStore((state) => state.momentum);
+  const freeHit = useGameStore((state) => state.freeHit);
+  const umpireCall = useGameStore((state) => state.umpireCall);
   const fieldPlan = useGameStore((state) => state.fieldPlan);
   const shotMode = useGameStore((state) => state.shotMode);
+  const shotPlacement = useGameStore((state) => state.shotPlacement);
   const deliveryInfo = useGameStore((state) => state.deliveryInfo);
   const pitchCondition = useGameStore((state) => state.pitchCondition);
   const selectedMode = getShotModeConfig(shotMode);
+  const selectedPlacement = getShotPlacementConfig(shotPlacement);
   const selectedField = getFieldPlan(fieldPlan);
   const requiredRuns = getRequiredRuns(score, targetScore);
-  const ballMarkers = Array.from({ length: maxBalls }, (_, index) => history[index] ?? null);
+  const striker = batters?.[strikerIndex];
+  const nonStriker = batters?.[nonStrikerIndex];
+  const legalHistory = history.filter((entry) => entry.legal !== false);
+  const ballMarkers = Array.from({ length: maxBalls }, (_, index) => legalHistory[index] ?? null);
 
   return (
     <div className="scoreboard-shell pointer-events-none absolute left-0 right-0 top-0 z-20">
@@ -41,6 +58,21 @@ export default function Scoreboard() {
           <div className="mt-2 flex gap-1.5 text-[0.68rem] font-bold text-slate-100">
             <span className="rounded bg-white/12 px-2 py-1">Target {targetScore}</span>
             <span className="rounded bg-white/12 px-2 py-1">{requiredRuns} need</span>
+            <span className="hidden rounded bg-white/12 px-2 py-1 sm:inline">Bat {batsmanRuns}</span>
+          </div>
+          <div className="mt-2 grid gap-1 text-[0.66rem] font-bold text-slate-100">
+            <div className="flex items-center justify-between gap-2 rounded bg-white/10 px-2 py-1">
+              <span className="min-w-0 truncate text-amber-100">{striker?.name ?? 'Striker'} *</span>
+              <span className="font-black text-white">
+                {striker?.runs ?? 0}({striker?.balls ?? 0})
+              </span>
+            </div>
+            <div className="hidden items-center justify-between gap-2 rounded bg-white/10 px-2 py-1 sm:flex">
+              <span className="min-w-0 truncate text-slate-300">{nonStriker?.name ?? 'Non-striker'}</span>
+              <span className="font-black text-white">
+                {nonStriker?.runs ?? 0}({nonStriker?.balls ?? 0})
+              </span>
+            </div>
           </div>
         </div>
 
@@ -50,7 +82,11 @@ export default function Scoreboard() {
             <span className="rounded bg-white/12 px-2 py-1">Balls {formatDeliveryCount(balls, maxBalls)}</span>
             <span className="rounded bg-white/12 px-2 py-1">Wkts {wickets}/{maxWickets}</span>
             <span className="rounded bg-white/12 px-2 py-1">{lastRuns === null ? '-' : `${lastRuns}R`}</span>
+            <span className="hidden rounded bg-white/12 px-2 py-1 sm:inline">
+              Pship {partnershipRuns}({partnershipBalls})
+            </span>
             <span className="hidden rounded bg-white/12 px-2 py-1 sm:inline">{deliveryInfo?.field ?? selectedField.shortLabel}</span>
+            {freeHit ? <span className="rounded bg-amber-300 px-2 py-1 font-black text-slate-950">Free hit</span> : null}
           </div>
           <div className="mt-2 grid grid-cols-6 gap-1">
             {ballMarkers.map((entry, index) => (
@@ -72,10 +108,13 @@ export default function Scoreboard() {
           </div>
         </div>
 
-        <div className="broadcast-panel hidden rounded-lg px-3 py-2.5 text-xs font-semibold text-slate-100 md:block md:min-w-44">
+        <div className="broadcast-panel hidden rounded-lg px-3 py-2.5 text-xs font-semibold text-slate-100 lg:block lg:min-w-44">
+          <FieldRadar />
           <div className="flex items-center justify-between gap-3">
             <span className="text-slate-300">Shot</span>
-            <span className="font-black text-white">{selectedMode.label}</span>
+            <span className="font-black text-white">
+              {selectedMode.label} / {selectedPlacement.label}
+            </span>
           </div>
           <div className="mt-2 flex items-center justify-between gap-3">
             <span className="text-slate-300">Rate</span>
@@ -88,6 +127,18 @@ export default function Scoreboard() {
           <div className="mt-2 flex items-center justify-between gap-3">
             <span className="text-slate-300">Dots</span>
             <span className="font-black text-white">{dotBalls}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="text-slate-300">Extras</span>
+            <span className="font-black text-white">{extras}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="text-slate-300">Flow</span>
+            <span className="font-black text-white">{momentum}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="text-slate-300">Umpire</span>
+            <span className="font-black text-white">{umpireCall}</span>
           </div>
           <div className="mt-2 flex items-center justify-between gap-3">
             <span className="text-slate-300">Field</span>

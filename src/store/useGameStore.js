@@ -1,20 +1,71 @@
 import { create } from 'zustand';
 import { describeRuns } from '../utils/scoring.js';
 import { SHOT_MODES } from '../utils/shotModes.js';
+import { SHOT_PLACEMENTS } from '../utils/shotPlacement.js';
 
 const MAX_BALLS = 6;
 const TARGET_SCORE = 24;
 const MAX_WICKETS = 2;
 const PITCH_SEQUENCE = ['dry', 'green', 'dusty'];
+const BATTER_ORDER = ['Arjun Rao', 'Kabir Singh', 'Dev Mehta', 'Rohan Iyer', 'Vivaan Shah'];
+
+export const MATCH_FORMATS = {
+  superOver: {
+    id: 'superOver',
+    label: 'Super Over',
+    shortLabel: 'Super',
+    maxBalls: 6,
+    maxWickets: 2,
+    targetScore: 24,
+  },
+  proChase: {
+    id: 'proChase',
+    label: 'Pro Chase',
+    shortLabel: 'Pro',
+    maxBalls: 12,
+    maxWickets: 3,
+    targetScore: 42,
+  },
+  deathOvers: {
+    id: 'deathOvers',
+    label: 'Death Overs',
+    shortLabel: 'Death',
+    maxBalls: 18,
+    maxWickets: 4,
+    targetScore: 68,
+  },
+};
+
+export const MATCH_FORMAT_LIST = [MATCH_FORMATS.superOver, MATCH_FORMATS.proChase, MATCH_FORMATS.deathOvers];
 
 function clampScore(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function createBatters() {
+  return BATTER_ORDER.map((name) => ({
+    name,
+    runs: 0,
+    balls: 0,
+    fours: 0,
+    sixes: 0,
+    out: false,
+    dismissal: null,
+  }));
+}
+
 const initialState = {
   phase: 'start',
   matchId: 0,
+  matchFormat: MATCH_FORMATS.superOver.id,
   score: 0,
+  batsmanRuns: 0,
+  batters: createBatters(),
+  strikerIndex: 0,
+  nonStrikerIndex: 1,
+  nextBatterIndex: 2,
+  partnershipRuns: 0,
+  partnershipBalls: 0,
   balls: 0,
   wickets: 0,
   maxBalls: MAX_BALLS,
@@ -25,6 +76,7 @@ const initialState = {
   swingRequestId: 0,
   ballState: 'idle',
   shotMode: SHOT_MODES.drive.id,
+  shotPlacement: SHOT_PLACEMENTS.straight.id,
   freeHit: false,
   pitchCondition: PITCH_SEQUENCE[0],
   cameraMode: 'bat',
@@ -55,12 +107,19 @@ export const useGameStore = create((set, get) => ({
   ...initialState,
 
   startGame: () => {
-    const nextMatchId = get().matchId + 1;
+    const state = get();
+    const nextMatchId = state.matchId + 1;
+    const matchFormat = MATCH_FORMATS[state.matchFormat] ?? MATCH_FORMATS.superOver;
 
     set({
       ...initialState,
+      batters: createBatters(),
       matchId: nextMatchId,
+      matchFormat: matchFormat.id,
       phase: 'playing',
+      maxBalls: matchFormat.maxBalls,
+      maxWickets: matchFormat.maxWickets,
+      targetScore: matchFormat.targetScore,
       pitchCondition: PITCH_SEQUENCE[(nextMatchId - 1) % PITCH_SEQUENCE.length],
       deliveryId: 1,
       ballState: 'runup',
@@ -74,7 +133,18 @@ export const useGameStore = create((set, get) => ({
   },
 
   resetToStart: () => {
-    set({ ...initialState });
+    set({ ...initialState, batters: createBatters() });
+  },
+
+  setMatchFormat: (matchFormatId) => {
+    const matchFormat = MATCH_FORMATS[matchFormatId] ?? MATCH_FORMATS.superOver;
+
+    set({
+      matchFormat: matchFormat.id,
+      maxBalls: matchFormat.maxBalls,
+      maxWickets: matchFormat.maxWickets,
+      targetScore: matchFormat.targetScore,
+    });
   },
 
   startNextDelivery: () => {
@@ -99,6 +169,11 @@ export const useGameStore = create((set, get) => ({
   setShotMode: (shotMode) => {
     const validMode = SHOT_MODES[shotMode] ? shotMode : SHOT_MODES.drive.id;
     set({ shotMode: validMode });
+  },
+
+  setShotPlacement: (shotPlacement) => {
+    const validPlacement = SHOT_PLACEMENTS[shotPlacement] ? shotPlacement : SHOT_PLACEMENTS.straight.id;
+    set({ shotPlacement: validPlacement });
   },
 
   playShot: () => {
@@ -159,9 +234,12 @@ export const useGameStore = create((set, get) => ({
     }
 
     const runs = outcome.runs ?? 0;
+    const extraRuns = outcome.extraRuns ?? (outcome.extraType ? 1 : 0);
+    const batRuns = outcome.batRuns ?? Math.max(0, runs - extraRuns);
     const legalDelivery = outcome.legalDelivery !== false;
     const nextBalls = state.balls + (legalDelivery ? 1 : 0);
     const nextScore = state.score + runs;
+    const nextBatsmanRuns = state.batsmanRuns + batRuns;
     const nextWickets = state.wickets + (outcome.wicket ? 1 : 0);
     const targetReached = nextScore >= state.targetScore;
     const allOut = nextWickets >= state.maxWickets;
@@ -170,10 +248,46 @@ export const useGameStore = create((set, get) => ({
     const matchResult = targetReached ? 'won' : allOut ? 'allOut' : overDone ? 'lost' : null;
     const timing = outcome.timing ?? state.lastTiming;
     const resultLabel = outcome.description ?? describeRuns(runs);
-    const extraRuns = outcome.extraRuns ?? (outcome.extraType ? 1 : 0);
     const impactType = outcome.extraType ? 'call' : outcome.wicket ? 'wicket' : runs >= 6 ? 'six' : runs >= 4 ? 'four' : runs > 0 ? 'run' : 'dot';
     const nextFreeHit = outcome.extraType === 'No ball' ? true : legalDelivery ? false : state.freeHit;
     const boundary = outcome.boundary ?? (!outcome.extraType && runs >= 4);
+    const currentBatters = state.batters ?? createBatters();
+    const striker = currentBatters[state.strikerIndex] ?? currentBatters[0];
+    const nextBatters = currentBatters.map((batter, index) => {
+      if (index !== state.strikerIndex) {
+        return batter;
+      }
+
+      return {
+        ...batter,
+        runs: batter.runs + batRuns,
+        balls: batter.balls + (legalDelivery ? 1 : 0),
+        fours: batter.fours + (batRuns === 4 ? 1 : 0),
+        sixes: batter.sixes + (batRuns === 6 ? 1 : 0),
+        out: batter.out || Boolean(outcome.wicket),
+        dismissal: outcome.wicket ? outcome.wicketType ?? 'Out' : batter.dismissal,
+      };
+    });
+    let nextStrikerIndex = state.strikerIndex;
+    let nextNonStrikerIndex = state.nonStrikerIndex;
+    let nextNextBatterIndex = state.nextBatterIndex;
+
+    if (outcome.wicket && !allOut) {
+      nextStrikerIndex = Math.min(state.nextBatterIndex, nextBatters.length - 1);
+      nextNextBatterIndex = Math.min(state.nextBatterIndex + 1, nextBatters.length - 1);
+    } else if (batRuns % 2 === 1) {
+      nextStrikerIndex = state.nonStrikerIndex;
+      nextNonStrikerIndex = state.strikerIndex;
+    }
+
+    if (legalDelivery && nextBalls % 6 === 0 && !gameOver) {
+      const swap = nextStrikerIndex;
+      nextStrikerIndex = nextNonStrikerIndex;
+      nextNonStrikerIndex = swap;
+    }
+
+    const nextPartnershipRuns = outcome.wicket ? 0 : state.partnershipRuns + runs;
+    const nextPartnershipBalls = outcome.wicket ? 0 : state.partnershipBalls + (legalDelivery ? 1 : 0);
     const momentumDelta =
       (boundary ? 10 : runs * 3) +
       (timing === 'Perfect' ? 8 : timing === 'Good' ? 4 : 0) -
@@ -185,6 +299,7 @@ export const useGameStore = create((set, get) => ({
     const historyEntry = {
       id: outcome.deliveryId,
       runs,
+      batRuns,
       legal: legalDelivery,
       extraType: outcome.extraType ?? null,
       extraRuns,
@@ -192,7 +307,9 @@ export const useGameStore = create((set, get) => ({
       wicket: Boolean(outcome.wicket),
       boundary,
       mode: outcome.shotMode ?? state.shotMode,
+      placement: outcome.shotPlacement ?? state.shotPlacement,
       label: resultLabel,
+      striker: striker?.name ?? 'Batter',
       delivery: state.deliveryInfo?.name ?? outcome.deliveryType ?? null,
       wicketType: outcome.wicketType ?? null,
       fielder: outcome.fielder ?? null,
@@ -202,12 +319,19 @@ export const useGameStore = create((set, get) => ({
       accuracy: outcome.accuracy ?? null,
     };
     const nextBestShot =
-      !outcome.wicket && runs > (state.bestShot?.runs ?? -1)
+      !outcome.wicket && batRuns > (state.bestShot?.batRuns ?? -1)
         ? historyEntry
         : state.bestShot;
 
     set({
       score: nextScore,
+      batsmanRuns: nextBatsmanRuns,
+      batters: nextBatters,
+      strikerIndex: nextStrikerIndex,
+      nonStrikerIndex: nextNonStrikerIndex,
+      nextBatterIndex: nextNextBatterIndex,
+      partnershipRuns: nextPartnershipRuns,
+      partnershipBalls: nextPartnershipBalls,
       balls: nextBalls,
       wickets: nextWickets,
       freeHit: nextFreeHit,
@@ -223,7 +347,7 @@ export const useGameStore = create((set, get) => ({
       boundaryCount: state.boundaryCount + (boundary ? 1 : 0),
       fieldingSaves: state.fieldingSaves + (outcome.fieldEvent === 'stop' ? 1 : 0),
       catches: state.catches + (outcome.fieldEvent === 'catch' ? 1 : 0),
-      dotBalls: state.dotBalls + (runs === 0 && legalDelivery ? 1 : 0),
+      dotBalls: state.dotBalls + (batRuns === 0 && legalDelivery && !outcome.extraType ? 1 : 0),
       extras: state.extras + extraRuns,
       wides: state.wides + (outcome.extraType === 'Wide' ? 1 : 0),
       noBalls: state.noBalls + (outcome.extraType === 'No ball' ? 1 : 0),

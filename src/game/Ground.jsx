@@ -216,40 +216,50 @@ function Floodlight({ angle }) {
 
 function SightScreen({ z }) {
   const direction = z > 0 ? Math.PI : 0;
+  const panels = [-2.56, -1.28, 0, 1.28, 2.56];
 
   return (
     <group position={[0, 0, z]} rotation={[0, direction, 0]}>
-      <mesh position={[0, 1.9, 0]} castShadow receiveShadow>
-        <boxGeometry args={[7.8, 3.1, 0.18]} />
-        <meshStandardMaterial color="#ddd8bf" roughness={0.86} metalness={0.02} />
+      <mesh position={[0, 1.76, -0.17]} castShadow receiveShadow>
+        <boxGeometry args={[7.3, 3.05, 0.14]} />
+        <meshStandardMaterial color="#304137" roughness={0.82} />
       </mesh>
-      <mesh position={[0, 1.9, -0.105]} castShadow>
-        <boxGeometry args={[8.05, 3.35, 0.08]} />
-        <meshStandardMaterial color="#43513f" roughness={0.76} />
+
+      {panels.map((x, index) => (
+        <mesh key={x} position={[x, 1.76, 0]} castShadow receiveShadow>
+          <boxGeometry args={[1.05, 2.74, 0.1]} />
+          <meshStandardMaterial color={index % 2 === 0 ? '#ece5cf' : '#ded7c0'} roughness={0.9} metalness={0.01} />
+        </mesh>
+      ))}
+
+      <mesh position={[0, 0.22, -0.1]} castShadow receiveShadow>
+        <boxGeometry args={[8.2, 0.42, 0.58]} />
+        <meshStandardMaterial color="#20332a" roughness={0.84} />
       </mesh>
-      <mesh position={[0, 0.18, -0.18]} castShadow receiveShadow>
-        <boxGeometry args={[8.6, 0.35, 0.42]} />
-        <meshStandardMaterial color="#1f2f28" roughness={0.82} />
+      <mesh position={[0, 3.26, -0.1]} castShadow receiveShadow>
+        <boxGeometry args={[7.9, 0.22, 0.34]} />
+        <meshStandardMaterial color="#24382f" roughness={0.74} />
       </mesh>
-      <mesh position={[0, 3.62, -0.18]} castShadow receiveShadow>
-        <boxGeometry args={[8.5, 0.24, 0.34]} />
-        <meshStandardMaterial color="#26372f" roughness={0.72} />
+      <mesh position={[-3.9, 1.76, -0.12]} castShadow receiveShadow>
+        <boxGeometry args={[0.18, 3.15, 0.34]} />
+        <meshStandardMaterial color="#24382f" roughness={0.74} />
       </mesh>
-      <mesh position={[-4.24, 1.9, -0.18]} castShadow receiveShadow>
-        <boxGeometry args={[0.24, 3.35, 0.34]} />
-        <meshStandardMaterial color="#26372f" roughness={0.72} />
+      <mesh position={[3.9, 1.76, -0.12]} castShadow receiveShadow>
+        <boxGeometry args={[0.18, 3.15, 0.34]} />
+        <meshStandardMaterial color="#24382f" roughness={0.74} />
       </mesh>
-      <mesh position={[4.24, 1.9, -0.18]} castShadow receiveShadow>
-        <boxGeometry args={[0.24, 3.35, 0.34]} />
-        <meshStandardMaterial color="#26372f" roughness={0.72} />
+
+      <mesh position={[0, 0.56, 0.08]} castShadow receiveShadow>
+        <boxGeometry args={[6.9, 0.16, 0.08]} />
+        <meshStandardMaterial color="#d0a94c" roughness={0.64} />
       </mesh>
-      <mesh position={[0, 3.8, -0.36]} castShadow>
-        <boxGeometry args={[2.8, 0.18, 0.12]} />
-        <meshStandardMaterial color="#d0a94c" roughness={0.58} />
+      <mesh position={[0, 0.78, 0.09]} castShadow receiveShadow>
+        <boxGeometry args={[3.2, 0.06, 0.045]} />
+        <meshStandardMaterial color="#0f241d" roughness={0.78} />
       </mesh>
-      <mesh position={[0, 3.8, -0.43]} castShadow>
-        <boxGeometry args={[1.4, 0.08, 0.04]} />
-        <meshStandardMaterial color="#17231d" roughness={0.74} />
+      <mesh position={[0, 1.78, -0.28]} receiveShadow>
+        <planeGeometry args={[9.4, 3.8]} />
+        <meshStandardMaterial color="#7da18c" transparent opacity={0.16} roughness={0.95} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -258,8 +268,8 @@ function SightScreen({ z }) {
 function SightScreens() {
   return (
     <group>
-      <SightScreen z={FIELD_RADIUS + 4.8} />
-      <SightScreen z={-(FIELD_RADIUS + 4.8)} />
+      <SightScreen z={FIELD_RADIUS + 8.2} />
+      <SightScreen z={-(FIELD_RADIUS + 8.2)} />
     </group>
   );
 }

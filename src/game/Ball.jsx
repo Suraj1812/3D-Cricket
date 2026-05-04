@@ -45,6 +45,7 @@ function createSimulation() {
     hit: false,
     timing: null,
     shotMode: null,
+    shotPlacement: 'straight',
     bouncesAfterHit: 0,
     deliveryBounces: 0,
     fieldingHandled: false,
@@ -214,6 +215,10 @@ export default function Ball() {
 
     if (bounced) {
       sim.deliveryBounces += 1;
+
+      if (sim.deliveryBounces === 1) {
+        useGameStore.getState().registerImpact('bounce');
+      }
     }
 
     if (ballPosition.z >= HIT_ZONE.minZ && ballPosition.z <= HIT_ZONE.maxZ && sim.hint !== 'hittable') {
@@ -231,6 +236,7 @@ export default function Ball() {
 
       if (wide) {
         finishDelivery(sim, 1, 'Leave', 'Wide', {
+          batRuns: 0,
           legalDelivery: false,
           extraType: 'Wide',
           extraRuns: 1,
@@ -240,6 +246,7 @@ export default function Ball() {
 
       if (sim.noBall) {
         finishDelivery(sim, 1, 'Miss', 'No ball', {
+          batRuns: 0,
           legalDelivery: false,
           extraType: 'No ball',
           extraRuns: 1,
@@ -248,6 +255,7 @@ export default function Ball() {
       }
 
       finishDelivery(sim, 0, 'Miss', sim.freeHit && wicketType ? 'Free hit: not out' : wicketType ?? 'Beaten', {
+        batRuns: 0,
         wicket: Boolean(wicketType) && !sim.freeHit,
         wicketType,
       });
@@ -278,6 +286,10 @@ export default function Ball() {
 
     if (bounced) {
       sim.bouncesAfterHit += 1;
+
+      if (sim.bouncesAfterHit <= 2) {
+        useGameStore.getState().registerImpact('bounce');
+      }
     }
 
     const distance = distanceFromCenter(ballPosition);
@@ -304,6 +316,7 @@ export default function Ball() {
           : fieldingOutcome.description;
 
       finishDelivery(sim, fieldingOutcome.runs + extraRuns, sim.timing?.label, description, {
+        batRuns: fieldingOutcome.runs,
         wicket: fieldingOutcome.wicket && !wicketProtected,
         wicketType: wicketProtected ? null : fieldingOutcome.wicketType,
         fielder: fieldingOutcome.fielder.role,
@@ -319,6 +332,7 @@ export default function Ball() {
       const runs = sim.bouncesAfterHit === 0 ? 6 : 4;
       const extraRuns = sim.noBall ? 1 : 0;
       finishDelivery(sim, runs + extraRuns, sim.timing?.label, sim.noBall ? `No ball + ${runs === 6 ? 'Six' : 'Four'}` : runs === 6 ? 'Six' : 'Four', {
+        batRuns: runs,
         legalDelivery: !sim.noBall,
         extraType: sim.noBall ? 'No ball' : null,
         extraRuns,
@@ -334,6 +348,7 @@ export default function Ball() {
       const runs = calculateRunningRuns(distance, sim.timing?.quality);
       const extraRuns = sim.noBall ? 1 : 0;
       finishDelivery(sim, runs + extraRuns, sim.timing?.label, sim.noBall ? `No ball + ${describeRuns(runs)}` : describeRuns(runs), {
+        batRuns: runs,
         legalDelivery: !sim.noBall,
         extraType: sim.noBall ? 'No ball' : null,
         extraRuns,
@@ -359,6 +374,7 @@ export default function Ball() {
     }
 
     const shotMode = store.shotMode;
+    const shotPlacement = store.shotPlacement;
     const timing = evaluateShotTiming(ballPosition, shotMode);
 
     if (timing.quality === 'miss') {
@@ -374,8 +390,9 @@ export default function Ball() {
     sim.phase = 'hit';
     sim.timing = timing;
     sim.shotMode = shotMode;
+    sim.shotPlacement = shotPlacement;
     sim.bouncesAfterHit = 0;
-    ballVelocity.copy(createHitVelocity(ballPosition, timing, sim.deliveryId, shotMode));
+    ballVelocity.copy(createHitVelocity(ballPosition, timing, sim.deliveryId, shotMode, shotPlacement, sim.deliveryProfile));
     spin.current.copy(createShotSpin(timing, shotMode));
 
     store.setShotFeedback({
@@ -398,6 +415,7 @@ export default function Ball() {
       timing,
       description,
       shotMode: sim.shotMode,
+      shotPlacement: sim.shotPlacement,
       deliveryType: sim.deliveryProfile?.name,
       accuracy: sim.timing?.accuracy,
       shot: sim.hit
@@ -406,6 +424,7 @@ export default function Ball() {
             z: Number(position.current.z.toFixed(2)),
             aerial: sim.bouncesAfterHit === 0,
             mode: sim.shotMode,
+            placement: sim.shotPlacement,
           }
         : null,
       ...extras,

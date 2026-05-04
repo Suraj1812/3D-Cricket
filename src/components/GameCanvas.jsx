@@ -5,6 +5,8 @@ import Bat from '../game/Bat.js';
 import Bowler from '../game/Bowler.js';
 import Fielders from '../game/Fielders.js';
 import Ground from '../game/Ground.js';
+import ImpactEffects from '../game/ImpactEffects.jsx';
+import Umpire from '../game/Umpire.js';
 import GameCamera from './GameCamera.jsx';
 import { useGameStore } from '../store/useGameStore.js';
 
@@ -41,9 +43,11 @@ export default function GameCanvas() {
 
       <Ground />
       <Fielders />
+      <Umpire />
       <Bowler />
       <Bat />
       <Ball />
+      <ImpactEffects />
       <GameCamera />
     </Canvas>
   );

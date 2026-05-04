@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { clamp } from '../utils/math.js';
 import { getShotModeConfig } from '../utils/shotModes.js';
+import { getShotPlacementConfig } from '../utils/shotPlacement.js';
 
 export const FIELD_RADIUS = 30;
 export const BALL_RADIUS = 0.18;
@@ -123,8 +124,32 @@ export function getDeliveryProfile(deliveryId, context = {}) {
       seam: 0.18,
       spin: new THREE.Vector3(0.1, 0.08, -0.5),
     },
+    {
+      name: 'Slower ball',
+      length: 'slower',
+      firstBounceZ: 0.8,
+      flightTime: 1.18,
+      line: 0.16,
+      pace: 112,
+      swing: -0.02,
+      seam: 0.16,
+      spin: new THREE.Vector3(0.78, 0.16, -0.7),
+    },
+    {
+      name: 'Inswing yorker',
+      length: 'full',
+      firstBounceZ: 3.55,
+      flightTime: 1.04,
+      line: -0.34,
+      pace: 136,
+      swing: 0.22,
+      seam: -0.02,
+      spin: new THREE.Vector3(-0.14, 0.04, -0.2),
+    },
   ];
-  const profile = profiles[(deliveryId + pressureOffset + boundaryOffset) % profiles.length];
+  const wicketOffset = context.wickets > 0 ? 1 : 0;
+  const freeHitOffset = context.freeHit ? 2 : 0;
+  const profile = profiles[(deliveryId + pressureOffset + boundaryOffset + wicketOffset + freeHitOffset) % profiles.length];
 
   return {
     ...profile,
@@ -266,42 +291,88 @@ export function evaluateShotTiming(position, shotMode = 'drive') {
   };
 }
 
-export function createHitVelocity(position, timing, deliveryId, shotMode = 'drive') {
+export function createHitVelocity(position, timing, deliveryId, shotMode = 'drive', shotPlacement = 'straight', deliveryProfile = null) {
   const variation = deliveryVariation(deliveryId + 7);
   const shot = getShotModeConfig(shotMode);
+  const placement = getShotPlacementConfig(shotPlacement);
+  const matchup = getShotMatchup(shotMode, deliveryProfile?.length);
   const contactHeight = clamp(position.y, BALL_RADIUS, 1.7);
-  const qualityPower = timing.quality === 'perfect' ? 1 : timing.quality === 'good' ? 0.84 : 0.66;
+  const qualityPower = (timing.quality === 'perfect' ? 1 : timing.quality === 'good' ? 0.84 : 0.66) * matchup.power;
   const sideBias = shotMode === 'sweep' ? -6.7 : shotMode === 'pull' ? -5.4 : 0;
+  const placementPower = timing.quality === 'perfect' ? 6.4 : timing.quality === 'good' ? 4.7 : 2.6;
+  const placementBias = placement.bias * placementPower * matchup.control;
 
   if (shotMode === 'defensive') {
     return new THREE.Vector3(
-      (variation - 0.5) * 1.2,
+      (variation - 0.5) * 1.2 + placement.bias * 0.9 * matchup.control,
       1.45 + contactHeight * 0.22,
-      4.2 + variation * 1.1,
+      (4.2 + variation * 1.1) * matchup.power,
     );
   }
 
   if (timing.quality === 'early') {
     return new THREE.Vector3(
-      (-10.6 - variation * 3.2) * shot.side + (shotMode === 'pull' ? -3.8 : 0),
-      (5.4 + contactHeight * 0.35) * shot.lift * qualityPower,
+      (-10.6 - variation * 3.2) * shot.side + (shotMode === 'pull' ? -3.8 : 0) + placementBias,
+      (5.4 + contactHeight * 0.35) * shot.lift * qualityPower * matchup.lift,
       (15.8 + variation * 2.8) * shot.power * qualityPower,
     );
   }
 
   if (timing.quality === 'late') {
     return new THREE.Vector3(
-      (9.8 + variation * 3.4) * shot.side + (shotMode === 'sweep' ? -2.8 : 0),
-      (5.0 + contactHeight * 0.3) * shot.lift * qualityPower,
+      (9.8 + variation * 3.4) * shot.side + (shotMode === 'sweep' ? -2.8 : 0) + placementBias,
+      (5.0 + contactHeight * 0.3) * shot.lift * qualityPower * matchup.lift,
       (14.6 + variation * 2.2) * shot.power * qualityPower,
     );
   }
 
   return new THREE.Vector3(
-    (variation - 0.5) * 2.4 * shot.side + sideBias,
-    (9.8 + contactHeight * 0.8) * shot.lift * qualityPower,
+    (variation - 0.5) * 2.4 * shot.side + sideBias + placementBias,
+    (9.8 + contactHeight * 0.8) * shot.lift * qualityPower * matchup.lift,
     (24.5 + variation * 2.6) * shot.power * qualityPower,
   );
+}
+
+function getShotMatchup(shotMode, length = 'good') {
+  const table = {
+    defensive: {
+      full: { power: 0.94, control: 1.06, lift: 0.92 },
+      good: { power: 1, control: 1.08, lift: 0.95 },
+      cutter: { power: 0.96, control: 1.02, lift: 0.92 },
+      short: { power: 0.82, control: 0.94, lift: 0.82 },
+      slower: { power: 0.94, control: 1.04, lift: 0.86 },
+    },
+    drive: {
+      full: { power: 1.08, control: 1.08, lift: 1.02 },
+      good: { power: 1.02, control: 1, lift: 1 },
+      cutter: { power: 0.9, control: 0.92, lift: 0.96 },
+      short: { power: 0.74, control: 0.82, lift: 0.86 },
+      slower: { power: 0.94, control: 0.9, lift: 1.02 },
+    },
+    loft: {
+      full: { power: 1.1, control: 1, lift: 1.08 },
+      good: { power: 1.04, control: 0.96, lift: 1.04 },
+      cutter: { power: 0.88, control: 0.82, lift: 0.98 },
+      short: { power: 0.86, control: 0.82, lift: 0.94 },
+      slower: { power: 1.02, control: 0.88, lift: 1.12 },
+    },
+    sweep: {
+      full: { power: 0.88, control: 0.86, lift: 0.88 },
+      good: { power: 1.02, control: 0.98, lift: 0.96 },
+      cutter: { power: 1.08, control: 1.08, lift: 0.92 },
+      short: { power: 0.72, control: 0.78, lift: 0.78 },
+      slower: { power: 1, control: 0.96, lift: 0.9 },
+    },
+    pull: {
+      full: { power: 0.7, control: 0.74, lift: 0.82 },
+      good: { power: 0.92, control: 0.9, lift: 0.95 },
+      cutter: { power: 0.88, control: 0.88, lift: 0.92 },
+      short: { power: 1.14, control: 1.06, lift: 1.04 },
+      slower: { power: 0.94, control: 0.9, lift: 0.96 },
+    },
+  };
+
+  return table[shotMode]?.[length] ?? { power: 1, control: 1, lift: 1 };
 }
 
 export function createShotSpin(timing, shotMode = 'drive') {

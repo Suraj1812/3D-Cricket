@@ -1,12 +1,15 @@
 import { useGameStore } from '../store/useGameStore.js';
 import { SHOT_MODE_LIST } from '../utils/shotModes.js';
+import { SHOT_PLACEMENT_LIST } from '../utils/shotPlacement.js';
 import TimingMeter from './TimingMeter.jsx';
 
 export default function TouchControls() {
   const phase = useGameStore((state) => state.phase);
   const playShot = useGameStore((state) => state.playShot);
   const shotMode = useGameStore((state) => state.shotMode);
+  const shotPlacement = useGameStore((state) => state.shotPlacement);
   const setShotMode = useGameStore((state) => state.setShotMode);
+  const setShotPlacement = useGameStore((state) => state.setShotPlacement);
   const deliveryInfo = useGameStore((state) => state.deliveryInfo);
 
   if (phase !== 'playing') {
@@ -34,6 +37,25 @@ export default function TouchControls() {
               >
                 <span className="hidden sm:inline">{mode.label}</span>
                 <span className="sm:hidden">{mode.shortLabel}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="placement-strip grid grid-cols-3 gap-1">
+            {SHOT_PLACEMENT_LIST.map((placement) => (
+              <button
+                type="button"
+                key={placement.id}
+                className={`placement-button ${
+                  shotPlacement === placement.id ? 'placement-button-active' : 'text-slate-100 hover:bg-white/10'
+                }`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setShotPlacement(placement.id);
+                }}
+              >
+                <span className="hidden sm:inline">{placement.label}</span>
+                <span className="sm:hidden">{placement.shortLabel}</span>
               </button>
             ))}
           </div>

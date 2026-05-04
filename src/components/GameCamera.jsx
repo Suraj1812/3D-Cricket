@@ -16,6 +16,7 @@ export default function GameCamera() {
     const state = useGameStore.getState();
     const ball = gameRefs.ball.position;
     const followingShot = state.ballState === 'hit' || state.ballState === 'settled';
+    const shotIsAerial = followingShot && gameRefs.ball.visible && ball.y > 3.2;
 
     if (state.completedDeliveryId !== lastCompletedDelivery.current) {
       lastCompletedDelivery.current = state.completedDeliveryId;
@@ -29,9 +30,14 @@ export default function GameCamera() {
 
     const distance = Math.hypot(ball.x, ball.z);
 
-    if (followingShot && gameRefs.ball.visible && distance > 22) {
-      desiredPosition.set(ball.x * 0.42, 12.6, ball.z - 18.5);
-      lookAtTarget.set(ball.x * 0.7, Math.max(1.1, ball.y), ball.z + 2.4);
+    if (followingShot && gameRefs.ball.visible && distance > 25) {
+      const side = ball.x >= 0 ? 1 : -1;
+
+      desiredPosition.set(ball.x * 0.5 + side * 4.8, 8.2, ball.z - 10.8);
+      lookAtTarget.set(ball.x * 0.76, Math.max(0.9, ball.y), ball.z + 1.8);
+    } else if (shotIsAerial) {
+      desiredPosition.set(ball.x * 0.18, 15.4, ball.z - 14.6);
+      lookAtTarget.set(ball.x * 0.42, Math.max(1.6, ball.y * 0.48), ball.z + 2.8);
     } else if (followingShot && gameRefs.ball.visible) {
       desiredPosition.set(ball.x * 0.24, 7.7 + Math.min(5.1, ball.length() * 0.065), ball.z - 13.8);
       lookAtTarget.set(ball.x * 0.5, Math.max(0.74, ball.y), ball.z + 3.8);
@@ -62,6 +68,7 @@ export default function GameCamera() {
     camera.fov += ((followingShot ? 38 : 42) - camera.fov) * (1 - Math.exp(-delta * 3.2));
     camera.updateProjectionMatrix();
     camera.lookAt(lookAtTarget);
+    camera.rotation.z += ((followingShot ? -ball.x * 0.0025 : 0) - camera.rotation.z) * (1 - Math.exp(-delta * 2.4));
   });
 
   return null;

@@ -1,5 +1,6 @@
 import { useGameStore } from '../store/useGameStore.js';
 import { getShotModeConfig } from '../utils/shotModes.js';
+import { getShotPlacementConfig } from '../utils/shotPlacement.js';
 
 export default function ResultToast() {
   const lastOutcome = useGameStore((state) => state.lastOutcome);
@@ -10,6 +11,7 @@ export default function ResultToast() {
   }
 
   const mode = getShotModeConfig(lastOutcome.mode);
+  const placement = getShotPlacementConfig(lastOutcome.placement);
   const tone = lastOutcome.wicket
     ? 'border-red-300/40 bg-red-950/65 text-red-50'
     : lastOutcome.runs >= 4
@@ -23,12 +25,16 @@ export default function ResultToast() {
           <div>
             <p className="text-lg font-black leading-tight">{lastOutcome.label}</p>
             <p className="mt-1 text-xs font-semibold text-white/75">
-              {lastOutcome.wicketType ?? mode.label}
+              {lastOutcome.striker ? `${lastOutcome.striker} - ` : ''}
+              {lastOutcome.extraType ?? lastOutcome.wicketType ?? mode.label}
+              {!lastOutcome.extraType && !lastOutcome.wicketType ? ` / ${placement.label}` : ''}
               {lastOutcome.fielder ? ` - ${lastOutcome.fielder}` : ''}
               {lastOutcome.accuracy ? ` - ${lastOutcome.accuracy}%` : ''}
             </p>
           </div>
-          <span className="rounded bg-white/15 px-2 py-1 text-xs font-black">{lastOutcome.runs}R</span>
+          <span className="rounded bg-white/15 px-2 py-1 text-xs font-black">
+            {lastOutcome.extraType ? `+${lastOutcome.extraRuns}` : `${lastOutcome.batRuns ?? lastOutcome.runs}R`}
+          </span>
         </div>
       </div>
     </div>

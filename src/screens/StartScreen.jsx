@@ -1,9 +1,12 @@
-import { useGameStore } from '../store/useGameStore.js';
+import { MATCH_FORMAT_LIST, useGameStore } from '../store/useGameStore.js';
 
 export default function StartScreen() {
   const startGame = useGameStore((state) => state.startGame);
+  const matchFormat = useGameStore((state) => state.matchFormat);
+  const setMatchFormat = useGameStore((state) => state.setMatchFormat);
   const targetScore = useGameStore((state) => state.targetScore);
   const maxBalls = useGameStore((state) => state.maxBalls);
+  const maxWickets = useGameStore((state) => state.maxWickets);
 
   return (
     <div className="absolute inset-0 z-30 grid place-items-center px-4">
@@ -20,9 +23,25 @@ export default function StartScreen() {
             <span className="mt-1 block text-xl font-black text-white">{maxBalls}</span>
           </div>
           <div className="rounded-md bg-white/10 p-3">
-            <span className="block text-slate-400">Mode</span>
-            <span className="mt-1 block text-xl font-black text-white">Pro</span>
+            <span className="block text-slate-400">Wickets</span>
+            <span className="mt-1 block text-xl font-black text-white">{maxWickets}</span>
           </div>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-1 rounded-full border border-white/10 bg-slate-950/35 p-1">
+          {MATCH_FORMAT_LIST.map((format) => (
+            <button
+              type="button"
+              key={format.id}
+              className={`rounded-full px-2 py-2 text-xs font-black transition active:scale-95 ${
+                matchFormat === format.id
+                  ? 'bg-emerald-200 text-slate-950 shadow-panel'
+                  : 'text-slate-200 hover:bg-white/10'
+              }`}
+              onClick={() => setMatchFormat(format.id)}
+            >
+              {format.shortLabel}
+            </button>
+          ))}
         </div>
         <button
           type="button"
