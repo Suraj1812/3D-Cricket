@@ -7,8 +7,12 @@ import { gameRefs } from '../utils/gameRefs.js';
 
 export default function Bowler() {
   const groupRef = useRef(null);
+  const bodyRef = useRef(null);
+  const headRef = useRef(null);
   const armRef = useRef(null);
+  const offArmRef = useRef(null);
   const legRef = useRef(null);
+  const trailLegRef = useRef(null);
   const runTime = useRef(0);
   const deliveryId = useGameStore((state) => state.deliveryId);
   const phase = useGameStore((state) => state.phase);
@@ -33,26 +37,47 @@ export default function Bowler() {
     const followThrough = Math.max(0, Math.min(1, (runTime.current - RUNUP_DURATION) / 0.62));
     const z = phase === 'playing' ? lerp(-23.5, -13.55, progress) + followThrough * 1.65 : -18.5;
     const stride = Math.sin(runTime.current * 16);
+    const strideLift = Math.abs(stride) * 0.08;
+    const releaseWindup = progress > 0.72 ? (progress - 0.72) / 0.28 : 0;
+    const landingJolt = Math.sin(followThrough * Math.PI) * 0.08;
 
-    groupRef.current.position.set(0, 0, z);
-    groupRef.current.rotation.y = Math.PI + followThrough * 0.18;
-    groupRef.current.rotation.x = -followThrough * 0.05;
+    groupRef.current.position.set(Math.sin(runTime.current * 5.3) * 0.04 * progress, strideLift - landingJolt, z);
+    groupRef.current.rotation.y = Math.PI + followThrough * 0.18 + stride * 0.018;
+    groupRef.current.rotation.x = -followThrough * 0.05 - releaseWindup * 0.04;
     gameRefs.bowler.position.copy(groupRef.current.position);
 
+    if (bodyRef.current) {
+      bodyRef.current.rotation.x = -releaseWindup * 0.1 + followThrough * 0.12;
+      bodyRef.current.rotation.z = stride * 0.035 - followThrough * 0.08;
+    }
+
+    if (headRef.current) {
+      headRef.current.rotation.x = releaseWindup * 0.12 - followThrough * 0.08;
+      headRef.current.rotation.z = stride * 0.035;
+    }
+
     if (armRef.current) {
-      const releaseWindup = progress > 0.72 ? (progress - 0.72) / 0.28 : 0;
-      armRef.current.rotation.x = -0.35 - releaseWindup * 2.25 + stride * 0.18 + followThrough * 1.1;
+      armRef.current.rotation.x = -0.35 - releaseWindup * 2.45 + stride * 0.18 + followThrough * 1.25;
       armRef.current.rotation.z = 0.24 - followThrough * 0.5;
     }
 
+    if (offArmRef.current) {
+      offArmRef.current.rotation.x = 0.18 + releaseWindup * 0.42 - stride * 0.16 - followThrough * 0.64;
+      offArmRef.current.rotation.z = -0.18 + releaseWindup * 0.42;
+    }
+
     if (legRef.current) {
-      legRef.current.rotation.x = stride * 0.42 - followThrough * 0.3;
+      legRef.current.rotation.x = stride * 0.46 - followThrough * 0.42;
+    }
+
+    if (trailLegRef.current) {
+      trailLegRef.current.rotation.x = -stride * 0.42 + followThrough * 0.34;
     }
   });
 
   return (
     <group ref={groupRef}>
-      <mesh position={[0, 1.18, 0]} castShadow>
+      <mesh ref={bodyRef} position={[0, 1.18, 0]} castShadow>
         <capsuleGeometry args={[0.33, 0.68, 8, 16]} />
         <meshStandardMaterial color="#2755a4" roughness={0.62} />
       </mesh>
@@ -61,7 +86,7 @@ export default function Bowler() {
         <meshStandardMaterial color="#f8fafc" roughness={0.58} />
       </mesh>
 
-      <mesh position={[0, 1.82, 0]} castShadow>
+      <mesh ref={headRef} position={[0, 1.82, 0]} castShadow>
         <sphereGeometry args={[0.2, 18, 18]} />
         <meshStandardMaterial color="#8f553e" roughness={0.54} />
       </mesh>
@@ -75,7 +100,7 @@ export default function Bowler() {
         <meshStandardMaterial color="#b21d2b" roughness={0.45} />
       </mesh>
 
-      <mesh position={[-0.36, 1.34, 0]} rotation={[0.18, 0, -0.18]} castShadow>
+      <mesh ref={offArmRef} position={[-0.36, 1.34, 0]} rotation={[0.18, 0, -0.18]} castShadow>
         <capsuleGeometry args={[0.07, 0.55, 8, 12]} />
         <meshStandardMaterial color="#8f553e" roughness={0.54} />
       </mesh>
@@ -89,7 +114,7 @@ export default function Bowler() {
         <meshStandardMaterial color="#111827" roughness={0.68} />
       </mesh>
 
-      <mesh position={[-0.17, 0.48, -0.03]} castShadow>
+      <mesh ref={trailLegRef} position={[-0.17, 0.48, -0.03]} castShadow>
         <capsuleGeometry args={[0.09, 0.72, 8, 12]} />
         <meshStandardMaterial color="#f4f7fb" roughness={0.7} />
       </mesh>

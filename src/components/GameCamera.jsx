@@ -36,11 +36,11 @@ export default function GameCamera() {
       desiredPosition.set(ball.x * 0.24, 7.7 + Math.min(5.1, ball.length() * 0.065), ball.z - 13.8);
       lookAtTarget.set(ball.x * 0.5, Math.max(0.74, ball.y), ball.z + 3.8);
     } else if (state.ballState === 'released' || state.ballState === 'hittable') {
-      desiredPosition.set(0, 6.8, 14.4);
-      lookAtTarget.set(ball.x * 0.22, Math.max(0.8, ball.y), ball.z + 0.8);
+      desiredPosition.set(0, 5.95, 13.8);
+      lookAtTarget.set(ball.x * 0.26, Math.max(0.9, ball.y), ball.z + 0.55);
     } else {
-      desiredPosition.set(0, 7.35, 16.7);
-      lookAtTarget.set(0, 1.16, 1.2);
+      desiredPosition.set(0, 6.35, 15.35);
+      lookAtTarget.set(0, 1.2, 2.15);
     }
 
     if (cameraPunch.current > 0.01) {

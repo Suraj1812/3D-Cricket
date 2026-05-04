@@ -37,10 +37,11 @@ button {
 }
 
 .glass-panel {
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(8, 15, 19, 0.68);
-  box-shadow: 0 18px 60px rgba(7, 12, 18, 0.28);
-  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background:
+    linear-gradient(135deg, rgba(6, 13, 16, 0.56), rgba(21, 43, 33, 0.44));
+  box-shadow: 0 16px 48px rgba(5, 10, 15, 0.24);
+  backdrop-filter: blur(14px) saturate(132%);
 }
 
 .screen-enter {
@@ -49,6 +50,285 @@ button {
 
 .hud-pop {
   animation: hud-pop 280ms cubic-bezier(0.2, 0.85, 0.22, 1) both;
+}
+
+.scoreboard-shell {
+  padding: clamp(0.7rem, 1.7vw, 1.1rem) clamp(0.75rem, 2vw, 1.5rem) 0;
+}
+
+.scoreboard-row {
+  filter: drop-shadow(0 12px 28px rgba(3, 8, 10, 0.2));
+}
+
+.broadcast-panel {
+  border: 1px solid rgba(230, 248, 240, 0.13);
+  background:
+    linear-gradient(135deg, rgba(5, 14, 16, 0.5), rgba(18, 40, 31, 0.36));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(11px) saturate(126%);
+}
+
+.game-controls {
+  padding: 0 clamp(0.75rem, 2vw, 1.5rem) max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.game-controls::before {
+  position: absolute;
+  inset: auto 0 0;
+  height: 9rem;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(0deg, rgba(3, 9, 11, 0.48), rgba(3, 9, 11, 0));
+}
+
+.control-layout {
+  position: relative;
+  grid-template-columns: minmax(0, min(34rem, calc(100vw - 7.2rem))) auto;
+  justify-content: space-between;
+}
+
+.control-stack {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.shot-strip,
+.delivery-strip {
+  border: 1px solid rgba(220, 245, 235, 0.16);
+  background:
+    linear-gradient(135deg, rgba(9, 26, 23, 0.66), rgba(16, 41, 29, 0.52));
+  box-shadow: 0 12px 36px rgba(2, 7, 9, 0.24);
+  backdrop-filter: blur(12px) saturate(130%);
+}
+
+.shot-strip {
+  min-height: 2.75rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+}
+
+.shot-mode-button {
+  position: relative;
+  min-height: 2.18rem;
+  overflow: hidden;
+  border-radius: 999px;
+  padding: 0 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  transition:
+    transform 160ms cubic-bezier(0.2, 0.9, 0.18, 1),
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.shot-mode-button::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.22), transparent 58%);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.shot-mode-button-active {
+  color: #071014;
+  background: linear-gradient(180deg, #fff8db, #f0c85f);
+  box-shadow:
+    inset 0 -2px 0 rgba(120, 78, 8, 0.24),
+    0 8px 20px rgba(245, 183, 42, 0.22);
+}
+
+.shot-mode-button-active::after,
+.shot-mode-button:hover::after {
+  opacity: 1;
+}
+
+.shot-mode-button:active {
+  transform: translateY(1px) scale(0.96);
+}
+
+.delivery-strip {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.55rem 0.75rem 0.65rem;
+  border-radius: 1rem;
+}
+
+.delivery-meta,
+.timing-meter-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: rgba(226, 241, 235, 0.92);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.timing-meter {
+  width: 100%;
+}
+
+.timing-track {
+  position: relative;
+  height: 0.48rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(4, 12, 17, 0.78);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.13),
+    inset 0 7px 12px rgba(0, 0, 0, 0.3);
+}
+
+.timing-zone {
+  position: absolute;
+  inset-block: 0;
+}
+
+.timing-zone-perfect {
+  left: 43%;
+  width: 15%;
+  background: linear-gradient(90deg, rgba(245, 199, 70, 0.86), rgba(255, 229, 121, 0.98));
+  box-shadow: 0 0 18px rgba(255, 214, 85, 0.46);
+}
+
+.timing-zone-early {
+  left: 30%;
+  width: 13%;
+  background: rgba(83, 210, 155, 0.38);
+}
+
+.timing-zone-late {
+  left: 58%;
+  width: 13%;
+  background: rgba(104, 190, 230, 0.38);
+}
+
+.timing-cue {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 0.42rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: #ffffff;
+  transform: translate(-50%, -50%);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.14),
+    0 0 18px rgba(255, 255, 255, 0.92);
+}
+
+.hit-button {
+  position: relative;
+  z-index: 0;
+  display: grid;
+  width: clamp(4.4rem, 8.4vw, 5.7rem);
+  height: clamp(4.4rem, 8.4vw, 5.7rem);
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 245, 205, 0.82);
+  color: #071014;
+  background:
+    radial-gradient(circle at 38% 26%, #fff4b8, #f2bd31 42%, #c07a13 100%);
+  box-shadow:
+    inset 0 -5px 0 rgba(93, 54, 7, 0.28),
+    0 15px 34px rgba(8, 8, 4, 0.34),
+    0 0 0 0 rgba(250, 204, 21, 0.36);
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  transition:
+    transform 140ms cubic-bezier(0.2, 0.9, 0.18, 1),
+    filter 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.hit-button::before {
+  position: absolute;
+  inset: -0.42rem;
+  z-index: -1;
+  content: "";
+  border-radius: inherit;
+  background: radial-gradient(circle, rgba(250, 204, 21, 0.22), transparent 67%);
+  animation: hit-idle-pulse 1600ms ease-in-out infinite;
+}
+
+.hit-button:hover {
+  filter: brightness(1.05) saturate(1.06);
+  transform: translateY(-1px);
+}
+
+.hit-button:active {
+  transform: translateY(2px) scale(0.94);
+  box-shadow:
+    inset 0 -2px 0 rgba(93, 54, 7, 0.28),
+    0 8px 18px rgba(8, 8, 4, 0.32);
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .game-controls {
+    padding-bottom: 0.5rem;
+  }
+
+  .control-layout {
+    grid-template-columns: minmax(0, min(29rem, calc(100vw - 6.4rem))) auto;
+  }
+
+  .control-stack {
+    gap: 0.38rem;
+  }
+
+  .shot-strip {
+    min-height: 2.28rem;
+  }
+
+  .shot-mode-button {
+    min-height: 1.78rem;
+    padding-inline: 0.38rem;
+    font-size: 0.68rem;
+  }
+
+  .delivery-strip {
+    padding: 0.42rem 0.6rem 0.5rem;
+    border-radius: 0.82rem;
+  }
+
+  .delivery-meta,
+  .timing-meter-labels {
+    font-size: 0.6rem;
+  }
+
+  .hit-button {
+    width: 4.25rem;
+    height: 4.25rem;
+  }
+
+  .scoreboard-shell {
+    padding-top: 0.5rem;
+  }
+
+  .scoreboard-row {
+    max-width: 44rem;
+  }
+
+  .scoreboard-row .broadcast-panel {
+    padding: 0.45rem 0.65rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .game-controls {
+    padding-inline: 0.65rem;
+  }
+
+  .delivery-meta {
+    font-size: 0.58rem;
+  }
 }
 
 @keyframes screen-enter {
@@ -72,5 +352,18 @@ button {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hit-idle-pulse {
+  0%,
+  100% {
+    opacity: 0.42;
+    transform: scale(0.95);
+  }
+
+  50% {
+    opacity: 0.76;
+    transform: scale(1.04);
   }
 }

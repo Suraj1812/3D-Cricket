@@ -21,7 +21,8 @@ export default function TimingMeter() {
       const distanceFromIdeal = Math.abs(progress - idealProgress);
 
       if (cueRef.current) {
-        cueRef.current.style.transform = `translateX(${progress * 100}%)`;
+        cueRef.current.style.left = `${progress * 100}%`;
+        cueRef.current.style.transform = 'translate(-50%, -50%)';
         cueRef.current.style.opacity = state.ballState === 'released' || inWindow ? '1' : '0.42';
       }
 
@@ -31,9 +32,9 @@ export default function TimingMeter() {
 
       if (labelRef.current) {
         if (inWindow && distanceFromIdeal < 0.12) {
-          labelRef.current.textContent = 'Perfect lane';
+          labelRef.current.textContent = 'Sweet spot';
         } else if (inWindow) {
-          labelRef.current.textContent = z < HIT_ZONE.idealZ ? 'Early lane' : 'Late lane';
+          labelRef.current.textContent = z < HIT_ZONE.idealZ ? 'Early' : 'Late';
         } else if (state.ballState === 'runup') {
           labelRef.current.textContent = 'Run-up';
         } else {
@@ -49,18 +50,18 @@ export default function TimingMeter() {
   }, []);
 
   return (
-    <div className="w-full max-w-md">
-      <div className="mb-2 flex items-center justify-between text-xs font-bold uppercase text-slate-200">
+    <div className="timing-meter">
+      <div className="timing-meter-labels">
         <span>Timing</span>
         <span ref={labelRef}>Ready</span>
       </div>
-      <div className="relative h-3 overflow-hidden rounded-full bg-slate-950/70 ring-1 ring-white/15">
-        <div className="absolute inset-y-0 left-[43%] w-[15%] bg-amber-300/90 blur-[1px]" ref={liveZoneRef} />
-        <div className="absolute inset-y-0 left-[30%] w-[13%] bg-emerald-300/45" />
-        <div className="absolute inset-y-0 left-[58%] w-[13%] bg-sky-300/45" />
+      <div className="timing-track">
+        <div className="timing-zone timing-zone-perfect" ref={liveZoneRef} />
+        <div className="timing-zone timing-zone-early" />
+        <div className="timing-zone timing-zone-late" />
         <div
           ref={cueRef}
-          className="absolute -left-1 top-1/2 h-5 w-2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_18px_rgba(255,255,255,0.9)]"
+          className="timing-cue"
         />
       </div>
     </div>
