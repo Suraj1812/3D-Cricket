@@ -1,0 +1,35 @@
+{
+  "name": "3d-cricket",
+  "version": "1.0.0",
+  "description": "A smooth 3D cricket game built with React, Vite, Three.js, and Zustand.",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "keywords": [
+    "react",
+    "threejs",
+    "cricket",
+    "game"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "three": "0.178.0",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.13",
+    "tailwindcss": "^3.4.19",
+    "vite": "^8.0.10"
+  }
+}
