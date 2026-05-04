@@ -3,6 +3,20 @@ import { SHOT_MODE_LIST } from '../utils/shotModes.js';
 import { SHOT_PLACEMENT_LIST } from '../utils/shotPlacement.js';
 import TimingMeter from './TimingMeter.jsx';
 
+const SHOT_ICONS = {
+  defensive: '▣',
+  drive: '↟',
+  loft: '⌃',
+  sweep: '↶',
+  pull: '⤴',
+};
+
+const PLACEMENT_ICONS = {
+  leg: '↙',
+  straight: '↑',
+  off: '↗',
+};
+
 export default function TouchControls() {
   const phase = useGameStore((state) => state.phase);
   const playShot = useGameStore((state) => state.playShot);
@@ -20,47 +34,44 @@ export default function TouchControls() {
     <div className="game-controls pointer-events-none absolute inset-x-0 bottom-0 z-20">
       <div className="control-layout mx-auto grid w-full max-w-7xl items-end gap-3">
         <div className="control-stack pointer-events-auto min-w-0">
-          <div className="shot-strip grid grid-cols-5 gap-1">
+          <div className="shot-icon-row" aria-label="Shot selection">
             {SHOT_MODE_LIST.map((mode) => (
               <button
                 type="button"
                 key={mode.id}
-                className={`shot-mode-button ${
-                  shotMode === mode.id
-                    ? 'shot-mode-button-active'
-                    : 'text-slate-100 hover:bg-white/10'
-                }`}
+                className={`shot-icon-button ${shotMode === mode.id ? 'shot-icon-button-active' : ''}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   setShotMode(mode.id);
                 }}
+                aria-label={mode.label}
+                title={mode.label}
               >
-                <span className="hidden sm:inline">{mode.label}</span>
-                <span className="sm:hidden">{mode.shortLabel}</span>
+                <span className="shot-icon" aria-hidden="true">{SHOT_ICONS[mode.id] ?? '•'}</span>
+                <span className="shot-caption">{mode.shortLabel}</span>
               </button>
             ))}
           </div>
 
-          <div className="placement-strip grid grid-cols-3 gap-1">
+          <div className="placement-icon-row" aria-label="Shot placement">
             {SHOT_PLACEMENT_LIST.map((placement) => (
               <button
                 type="button"
                 key={placement.id}
-                className={`placement-button ${
-                  shotPlacement === placement.id ? 'placement-button-active' : 'text-slate-100 hover:bg-white/10'
-                }`}
+                className={`placement-icon-button ${shotPlacement === placement.id ? 'placement-icon-button-active' : ''}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   setShotPlacement(placement.id);
                 }}
+                aria-label={placement.label}
+                title={placement.label}
               >
-                <span className="hidden sm:inline">{placement.label}</span>
-                <span className="sm:hidden">{placement.shortLabel}</span>
+                <span aria-hidden="true">{PLACEMENT_ICONS[placement.id] ?? '↑'}</span>
               </button>
             ))}
           </div>
 
-          <div className="delivery-strip">
+          <div className="delivery-strip compact-delivery-strip">
             <div className="delivery-meta">
               <span>{deliveryInfo?.name ?? 'Bowler'}</span>
               <span>
@@ -84,8 +95,9 @@ export default function TouchControls() {
             playShot();
           }}
           aria-label="Hit shot"
+          title="Hit shot"
         >
-          HIT
+          <span aria-hidden="true">●</span>
         </button>
       </div>
     </div>
