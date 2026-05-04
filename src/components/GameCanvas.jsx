@@ -3,6 +3,7 @@ import { Sky } from '@react-three/drei';
 import Ball from '../game/Ball.js';
 import Bat from '../game/Bat.js';
 import Bowler from '../game/Bowler.js';
+import FieldingAction from '../game/FieldingAction.jsx';
 import Fielders from '../game/Fielders.js';
 import Ground from '../game/Ground.js';
 import ImpactEffects from '../game/ImpactEffects.jsx';
@@ -43,6 +44,7 @@ export default function GameCanvas() {
 
       <Ground />
       <Fielders />
+      <FieldingAction />
       <Umpire />
       <Bowler />
       <Bat />

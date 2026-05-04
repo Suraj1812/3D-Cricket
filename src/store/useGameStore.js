@@ -54,6 +54,29 @@ function createBatters() {
   }));
 }
 
+function getPressureLabel({ requiredRuns, remainingBalls, wickets, maxWickets, momentum }) {
+  const requiredRate = requiredRuns / Math.max(1, remainingBalls);
+  const wicketsLeft = Math.max(0, maxWickets - wickets);
+
+  if (requiredRuns <= 0) {
+    return 'Complete';
+  }
+
+  if (wicketsLeft <= 1 || requiredRate >= 4.2 || momentum < 24) {
+    return 'Clutch';
+  }
+
+  if (requiredRate >= 3.1 || momentum < 42) {
+    return 'Pressure';
+  }
+
+  if (momentum > 74) {
+    return 'Flowing';
+  }
+
+  return 'Settled';
+}
+
 const initialState = {
   phase: 'start',
   matchId: 0,
@@ -96,11 +119,18 @@ const initialState = {
   wides: 0,
   noBalls: 0,
   momentum: 52,
+  pressureLabel: 'Settled',
   umpireCall: 'Play',
   bestShot: null,
   matchResult: null,
   impactEventId: 0,
   impactType: null,
+  runningEventId: 0,
+  runningEvent: null,
+  fieldingEventId: 0,
+  fieldingEvent: null,
+  celebrationEventId: 0,
+  celebration: null,
 };
 
 export const useGameStore = create((set, get) => ({
@@ -295,7 +325,42 @@ export const useGameStore = create((set, get) => ({
       (runs === 0 && legalDelivery ? 6 : 0) +
       (outcome.extraType ? 4 : 0);
     const nextMomentum = clampScore(state.momentum + momentumDelta, 0, 100);
+    const nextPressureLabel = getPressureLabel({
+      requiredRuns: Math.max(0, state.targetScore - nextScore),
+      remainingBalls: Math.max(1, state.maxBalls - nextBalls),
+      wickets: nextWickets,
+      maxWickets: state.maxWickets,
+      momentum: nextMomentum,
+    });
     const umpireCall = outcome.extraType ?? (outcome.wicket ? 'Out' : runs >= 6 ? 'Six' : runs >= 4 ? 'Four' : 'Play');
+    const runningEvent =
+      batRuns > 0 && batRuns < 4
+        ? {
+            deliveryId: outcome.deliveryId,
+            runs: batRuns,
+            urgency: clampScore((state.targetScore - nextScore) / Math.max(1, state.maxBalls - nextBalls) / 4, 0.28, 1),
+            hesitation: timing === 'Late' || outcome.fieldEvent === 'stop',
+            striker: striker?.name ?? 'Batter',
+          }
+        : null;
+    const fieldingEvent =
+      outcome.fieldEvent || outcome.wicket
+        ? {
+            deliveryId: outcome.deliveryId,
+            type: outcome.fieldEvent ?? (outcome.wicket ? 'wicket' : null),
+            role: outcome.fielder ?? null,
+            position: outcome.fielderPosition ?? null,
+            wicket: Boolean(outcome.wicket),
+            runsSaved: outcome.fieldEvent === 'stop' ? Math.max(0, 2 - batRuns) : 0,
+          }
+        : null;
+    const celebration = {
+      deliveryId: outcome.deliveryId,
+      type: targetReached ? 'win' : outcome.wicket ? 'wicket' : boundary ? 'boundary' : runs > 0 ? 'run' : outcome.extraType ? 'call' : 'dot',
+      intensity: targetReached || runs >= 6 || outcome.wicket ? 1 : runs >= 4 ? 0.78 : runs > 0 ? 0.42 : 0.24,
+      batting: targetReached || (!outcome.wicket && !outcome.extraType && runs > 0),
+      fielding: outcome.wicket || runs === 0 || outcome.fieldEvent === 'stop',
+    };
     const historyEntry = {
       id: outcome.deliveryId,
       runs,
@@ -313,6 +378,7 @@ export const useGameStore = create((set, get) => ({
       delivery: state.deliveryInfo?.name ?? outcome.deliveryType ?? null,
       wicketType: outcome.wicketType ?? null,
       fielder: outcome.fielder ?? null,
+      fielderPosition: outcome.fielderPosition ?? null,
       fieldEvent: outcome.fieldEvent ?? null,
       fieldPlan: state.fieldPlan,
       shot: outcome.shot ?? null,
@@ -352,11 +418,18 @@ export const useGameStore = create((set, get) => ({
       wides: state.wides + (outcome.extraType === 'Wide' ? 1 : 0),
       noBalls: state.noBalls + (outcome.extraType === 'No ball' ? 1 : 0),
       momentum: nextMomentum,
+      pressureLabel: nextPressureLabel,
       umpireCall,
       bestShot: nextBestShot,
       matchResult,
       impactEventId: state.impactEventId + 1,
       impactType,
+      runningEventId: state.runningEventId + (runningEvent ? 1 : 0),
+      runningEvent,
+      fieldingEventId: state.fieldingEventId + (fieldingEvent ? 1 : 0),
+      fieldingEvent,
+      celebrationEventId: state.celebrationEventId + 1,
+      celebration,
     });
 
     return {

@@ -320,6 +320,10 @@ export default function Ball() {
         wicket: fieldingOutcome.wicket && !wicketProtected,
         wicketType: wicketProtected ? null : fieldingOutcome.wicketType,
         fielder: fieldingOutcome.fielder.role,
+        fielderPosition: {
+          x: fieldingOutcome.fielder.x,
+          z: fieldingOutcome.fielder.z,
+        },
         fieldEvent: wicketProtected ? null : fieldingOutcome.type,
         legalDelivery: !sim.noBall,
         extraType: sim.noBall ? 'No ball' : null,
@@ -434,13 +438,16 @@ export default function Ball() {
       return;
     }
 
+    const batRuns = extras.batRuns ?? Math.max(0, runs - (extras.extraRuns ?? 0));
+    const deliveryPause = 1180 + Math.min(3, batRuns) * 310 + (extras.wicket ? 420 : 0);
+
     nextDeliveryTimer.current = window.setTimeout(() => {
       const latest = useGameStore.getState();
 
       if (latest.phase === 'playing' && latest.completedDeliveryId === sim.deliveryId) {
         latest.startNextDelivery();
       }
-    }, 1300);
+    }, deliveryPause);
   }
 
   return (

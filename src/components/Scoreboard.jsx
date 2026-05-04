@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { formatDeliveryCount, formatOvers, getRequiredRuns, getRunRate } from '../utils/scoring.js';
 import { useGameStore } from '../store/useGameStore.js';
 import { getShotModeConfig } from '../utils/shotModes.js';
@@ -6,6 +7,7 @@ import { getShotPlacementConfig } from '../utils/shotPlacement.js';
 import FieldRadar from './FieldRadar.jsx';
 
 export default function Scoreboard() {
+  const [openPanel, setOpenPanel] = useState(null);
   const score = useGameStore((state) => state.score);
   const batsmanRuns = useGameStore((state) => state.batsmanRuns);
   const batters = useGameStore((state) => state.batters);
@@ -28,6 +30,7 @@ export default function Scoreboard() {
   const dotBalls = useGameStore((state) => state.dotBalls);
   const extras = useGameStore((state) => state.extras);
   const momentum = useGameStore((state) => state.momentum);
+  const pressureLabel = useGameStore((state) => state.pressureLabel);
   const freeHit = useGameStore((state) => state.freeHit);
   const umpireCall = useGameStore((state) => state.umpireCall);
   const fieldPlan = useGameStore((state) => state.fieldPlan);
@@ -43,121 +46,125 @@ export default function Scoreboard() {
   const nonStriker = batters?.[nonStrikerIndex];
   const legalHistory = history.filter((entry) => entry.legal !== false);
   const ballMarkers = Array.from({ length: maxBalls }, (_, index) => legalHistory[index] ?? null);
+  const pressureTone =
+    pressureLabel === 'Clutch'
+      ? 'hud-pressure-danger'
+      : pressureLabel === 'Pressure'
+        ? 'hud-pressure-warning'
+        : 'hud-pressure-calm';
 
   return (
     <div className="scoreboard-shell pointer-events-none absolute left-0 right-0 top-0 z-20">
-      <div className="scoreboard-row mx-auto flex w-full max-w-6xl flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="broadcast-panel rounded-lg px-3 py-2.5 sm:min-w-40">
-          <p className="text-[0.65rem] font-semibold uppercase text-slate-300">Score</p>
-          <div className="mt-0.5 flex items-end gap-2">
-            <span className="text-3xl font-black leading-none text-white sm:text-4xl">{score}</span>
-            <span className="pb-1 text-sm font-semibold text-emerald-200">
-              /{wickets} in {formatOvers(balls)}
-            </span>
+      <div className="hud-topbar mx-auto flex w-full max-w-6xl items-start justify-between gap-2">
+        <div className="hud-score-card">
+          <div className="flex items-end gap-1.5">
+            <span className="hud-score-main">{score}</span>
+            <span className="pb-0.5 text-sm font-black text-emerald-200">/{wickets}</span>
+            <span className="pb-0.5 text-xs font-bold text-slate-200">{formatOvers(balls)}</span>
           </div>
-          <div className="mt-2 flex gap-1.5 text-[0.68rem] font-bold text-slate-100">
-            <span className="rounded bg-white/12 px-2 py-1">Target {targetScore}</span>
-            <span className="rounded bg-white/12 px-2 py-1">{requiredRuns} need</span>
-            <span className="hidden rounded bg-white/12 px-2 py-1 sm:inline">Bat {batsmanRuns}</span>
-          </div>
-          <div className="mt-2 grid gap-1 text-[0.66rem] font-bold text-slate-100">
-            <div className="flex items-center justify-between gap-2 rounded bg-white/10 px-2 py-1">
-              <span className="min-w-0 truncate text-amber-100">{striker?.name ?? 'Striker'} *</span>
-              <span className="font-black text-white">
-                {striker?.runs ?? 0}({striker?.balls ?? 0})
-              </span>
-            </div>
-            <div className="hidden items-center justify-between gap-2 rounded bg-white/10 px-2 py-1 sm:flex">
-              <span className="min-w-0 truncate text-slate-300">{nonStriker?.name ?? 'Non-striker'}</span>
-              <span className="font-black text-white">
-                {nonStriker?.runs ?? 0}({nonStriker?.balls ?? 0})
-              </span>
-            </div>
+          <div className="hud-score-meta">
+            <span>T{targetScore}</span>
+            <span>{requiredRuns} need</span>
+            <span>{formatDeliveryCount(balls, maxBalls)}</span>
           </div>
         </div>
 
-        <div className="broadcast-panel min-w-0 flex-1 rounded-lg px-3 py-2.5 text-center">
-          <p className="truncate text-sm font-bold text-white">{phase === 'playing' ? message : '3D Cricket'}</p>
-          <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[0.68rem] font-semibold text-slate-200">
-            <span className="rounded bg-white/12 px-2 py-1">Balls {formatDeliveryCount(balls, maxBalls)}</span>
-            <span className="rounded bg-white/12 px-2 py-1">Wkts {wickets}/{maxWickets}</span>
-            <span className="rounded bg-white/12 px-2 py-1">{lastRuns === null ? '-' : `${lastRuns}R`}</span>
-            <span className="hidden rounded bg-white/12 px-2 py-1 sm:inline">
-              Pship {partnershipRuns}({partnershipBalls})
-            </span>
-            <span className="hidden rounded bg-white/12 px-2 py-1 sm:inline">{deliveryInfo?.field ?? selectedField.shortLabel}</span>
-            {freeHit ? <span className="rounded bg-amber-300 px-2 py-1 font-black text-slate-950">Free hit</span> : null}
+        <div className="hud-center-card min-w-0 flex-1">
+          <div className="flex min-w-0 items-center justify-center gap-2">
+            <span className={`hud-pressure ${pressureTone}`}>{pressureLabel}</span>
+            <p className="truncate text-sm font-black text-white">{phase === 'playing' ? message : '3D Cricket'}</p>
+            {freeHit ? <span className="hud-free-hit">FH</span> : null}
           </div>
-          <div className="mt-2 grid grid-cols-6 gap-1">
+          <div className="hud-ball-row" aria-label="Ball history">
             {ballMarkers.map((entry, index) => (
               <span
                 key={index}
-                className={`h-6 rounded text-center text-[0.68rem] font-black leading-6 ${
+                className={`hud-ball-dot ${
                   entry?.wicket
-                    ? 'bg-red-500 text-white'
+                    ? 'hud-ball-wicket'
                     : entry?.runs >= 4
-                      ? 'bg-amber-300 text-slate-950'
+                      ? 'hud-ball-boundary'
                       : entry
-                        ? 'bg-white text-slate-950'
-                        : 'bg-white/12 text-slate-300'
+                        ? 'hud-ball-scored'
+                        : ''
                 }`}
+                title={`Ball ${index + 1}`}
               >
                 {entry ? (entry.wicket ? 'W' : entry.runs) : index + 1}
               </span>
             ))}
           </div>
+          <div className="hud-batter-line">
+            <span>{striker?.name ?? 'Striker'}* {striker?.runs ?? 0}({striker?.balls ?? 0})</span>
+            <span className="hidden sm:inline">{nonStriker?.name ?? 'Non-striker'} {nonStriker?.runs ?? 0}({nonStriker?.balls ?? 0})</span>
+            <span className="hidden md:inline">P {partnershipRuns}({partnershipBalls})</span>
+          </div>
         </div>
 
-        <div className="broadcast-panel hidden rounded-lg px-3 py-2.5 text-xs font-semibold text-slate-100 lg:block lg:min-w-44">
-          <FieldRadar />
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-slate-300">Shot</span>
-            <span className="font-black text-white">
-              {selectedMode.label} / {selectedPlacement.label}
-            </span>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-slate-300">Rate</span>
-            <span className="font-black text-white">{getRunRate(score, balls)}</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-slate-300">Boundaries</span>
-            <span className="font-black text-white">{boundaryCount}</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-slate-300">Dots</span>
-            <span className="font-black text-white">{dotBalls}</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-slate-300">Extras</span>
-            <span className="font-black text-white">{extras}</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-slate-300">Flow</span>
-            <span className="font-black text-white">{momentum}</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-slate-300">Umpire</span>
-            <span className="font-black text-white">{umpireCall}</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-slate-300">Field</span>
-            <span className="font-black text-white">{deliveryInfo?.field ?? selectedField.shortLabel}</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-slate-300">Saves</span>
-            <span className="font-black text-white">{fieldingSaves}</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-slate-300">Ball</span>
-            <span className="max-w-24 truncate font-black text-white">{deliveryInfo?.name ?? lastTiming ?? 'Ready'}</span>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-slate-300">Pitch</span>
-            <span className="font-black capitalize text-white">{deliveryInfo?.surface ?? pitchCondition}</span>
-          </div>
+        <div className="hud-actions pointer-events-auto">
+          <button
+            type="button"
+            className={`hud-icon-button ${openPanel === 'radar' ? 'hud-icon-button-active' : ''}`}
+            aria-label="Toggle field radar"
+            title="Field radar"
+            onClick={() => setOpenPanel(openPanel === 'radar' ? null : 'radar')}
+          >
+            <span aria-hidden="true">⌖</span>
+          </button>
+          <button
+            type="button"
+            className={`hud-icon-button ${openPanel === 'score' ? 'hud-icon-button-active' : ''}`}
+            aria-label="Toggle match stats"
+            title="Match stats"
+            onClick={() => setOpenPanel(openPanel === 'score' ? null : 'score')}
+          >
+            <span aria-hidden="true">▦</span>
+          </button>
         </div>
       </div>
+
+      {openPanel ? (
+        <div className="hud-popover pointer-events-auto">
+          {openPanel === 'radar' ? (
+            <>
+              <FieldRadar />
+              <div className="hud-popover-grid">
+                <span>Shot</span>
+                <strong>{selectedMode.label} / {selectedPlacement.label}</strong>
+                <span>Field</span>
+                <strong>{deliveryInfo?.field ?? selectedField.shortLabel}</strong>
+                <span>Ball</span>
+                <strong>{deliveryInfo?.name ?? lastTiming ?? 'Ready'}</strong>
+              </div>
+            </>
+          ) : (
+            <div className="hud-popover-grid">
+              <span>Rate</span>
+              <strong>{getRunRate(score, balls)}</strong>
+              <span>Wickets</span>
+              <strong>{wickets}/{maxWickets}</strong>
+              <span>Bat runs</span>
+              <strong>{batsmanRuns}</strong>
+              <span>Last</span>
+              <strong>{lastRuns === null ? '-' : `${lastRuns}R`}</strong>
+              <span>Boundaries</span>
+              <strong>{boundaryCount}</strong>
+              <span>Dots</span>
+              <strong>{dotBalls}</strong>
+              <span>Extras</span>
+              <strong>{extras}</strong>
+              <span>Saves</span>
+              <strong>{fieldingSaves}</strong>
+              <span>Flow</span>
+              <strong>{momentum}</strong>
+              <span>Umpire</span>
+              <strong>{umpireCall}</strong>
+              <span>Pitch</span>
+              <strong>{deliveryInfo?.surface ?? pitchCondition}</strong>
+            </div>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

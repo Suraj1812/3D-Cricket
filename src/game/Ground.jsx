@@ -145,6 +145,8 @@ function PitchWear() {
 
 function CrowdBowl() {
   const meshRef = useRef(null);
+  const cheerRef = useRef(0);
+  const lastCelebrationRef = useRef(0);
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const palette = useMemo(
     () => ['#eab308', '#ef4444', '#38bdf8', '#f8fafc', '#22c55e', '#fb7185'],
@@ -183,7 +185,16 @@ function CrowdBowl() {
       return;
     }
 
-    meshRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.55) * 0.004;
+    const state = useGameStore.getState();
+
+    if (state.celebrationEventId !== lastCelebrationRef.current) {
+      lastCelebrationRef.current = state.celebrationEventId;
+      cheerRef.current = state.celebration?.intensity ?? 0;
+    }
+
+    cheerRef.current = Math.max(0, cheerRef.current - 0.018);
+    meshRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.55) * 0.004 + Math.sin(clock.elapsedTime * 6.5) * cheerRef.current * 0.01;
+    meshRef.current.position.y = Math.abs(Math.sin(clock.elapsedTime * 8.2)) * cheerRef.current * 0.08;
   });
 
   return (
