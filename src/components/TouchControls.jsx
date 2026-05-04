@@ -41,7 +41,11 @@ export default function TouchControls() {
           <div className="delivery-strip">
             <div className="delivery-meta">
               <span>{deliveryInfo?.name ?? 'Bowler'}</span>
-              <span>{deliveryInfo?.pace ? `${deliveryInfo.pace} kph - ${deliveryInfo.surface}` : 'Ready'}</span>
+              <span>
+                {deliveryInfo?.pace
+                  ? `${deliveryInfo.pace} kph - ${deliveryInfo.surface} - ${deliveryInfo.field}`
+                  : 'Ready'}
+              </span>
             </div>
             <TimingMeter />
           </div>

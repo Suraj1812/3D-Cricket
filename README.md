@@ -40,11 +40,12 @@ The app keeps high-frequency simulation work inside `useFrame` refs so React doe
 The 3D game is split into focused scene modules:
 
 - `Ground.js` builds the field, pitch, stumps, boundary boards, floodlights, animated crowd bowl, and pitch-surface visuals.
-- `Fielders.js` adds fielding positions and extra on-field life.
+- `Fielders.js` renders pressure-based field placements and reactive fielder movement.
 - `Bowler.js` animates AI run-up, release rhythm, and follow-through.
 - `Bat.js` renders the batsman and blends shot-specific swing poses.
-- `Ball.js` owns delivery variation, bounce, shot timing, wickets, ball trail, boundary detection, camera impact events, and scoring.
+- `Ball.js` owns delivery variation, bounce, shot timing, LBW/bowled/caught outcomes, fielder stops, ball trail, boundary detection, camera impact events, and scoring.
 - `Physics.js` contains reusable vector physics, delivery profiles, swing, seam, spin, pitch-surface tuning, shot trajectories, and timing calculations.
+- `fielding.js` contains attacking, balanced, and defensive field plans plus catch/save evaluation.
 - `GameCamera.jsx` handles smooth gameplay tracking, impact shake, FOV changes, and ball-follow angles.
 - `useGameAudio.js` provides lightweight procedural impact audio without adding asset dependencies.
 
@@ -53,6 +54,8 @@ The 3D game is split into focused scene modules:
 - Chase 24 from one over.
 - Select Defend, Drive, Loft, Sweep, or Pull for different risk and reward.
 - Bowler varies length, line, pace, swing, seam, and spin based on match pressure.
+- Field placements adapt between attacking, balanced, and boundary-saving setups.
+- Mistimed aerial shots can be caught; grounded shots can be stopped by fielders.
+- Misses can produce bowled, LBW, or beaten outcomes depending on line and height.
 - Pitch surfaces rotate between dry, green, and dusty conditions.
-- Missed balls can beat the bat or hit the stumps.
 - Timing, ball-by-ball history, wickets, run rate, target, match summary, and result feedback are surfaced in the UI.

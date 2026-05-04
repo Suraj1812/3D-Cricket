@@ -23,7 +23,9 @@ export default function ResultToast() {
           <div>
             <p className="text-lg font-black leading-tight">{lastOutcome.label}</p>
             <p className="mt-1 text-xs font-semibold text-white/75">
-              {mode.label} {lastOutcome.accuracy ? `- ${lastOutcome.accuracy}%` : ''}
+              {lastOutcome.wicketType ?? mode.label}
+              {lastOutcome.fielder ? ` - ${lastOutcome.fielder}` : ''}
+              {lastOutcome.accuracy ? ` - ${lastOutcome.accuracy}%` : ''}
             </p>
           </div>
           <span className="rounded bg-white/15 px-2 py-1 text-xs font-black">{lastOutcome.runs}R</span>

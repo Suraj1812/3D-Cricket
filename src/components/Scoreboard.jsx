@@ -1,6 +1,7 @@
 import { formatDeliveryCount, formatOvers, getRequiredRuns, getRunRate } from '../utils/scoring.js';
 import { useGameStore } from '../store/useGameStore.js';
 import { getShotModeConfig } from '../utils/shotModes.js';
+import { getFieldPlan } from '../utils/fielding.js';
 
 export default function Scoreboard() {
   const score = useGameStore((state) => state.score);
@@ -15,10 +16,14 @@ export default function Scoreboard() {
   const phase = useGameStore((state) => state.phase);
   const history = useGameStore((state) => state.history);
   const boundaryCount = useGameStore((state) => state.boundaryCount);
+  const fieldingSaves = useGameStore((state) => state.fieldingSaves);
+  const dotBalls = useGameStore((state) => state.dotBalls);
+  const fieldPlan = useGameStore((state) => state.fieldPlan);
   const shotMode = useGameStore((state) => state.shotMode);
   const deliveryInfo = useGameStore((state) => state.deliveryInfo);
   const pitchCondition = useGameStore((state) => state.pitchCondition);
   const selectedMode = getShotModeConfig(shotMode);
+  const selectedField = getFieldPlan(fieldPlan);
   const requiredRuns = getRequiredRuns(score, targetScore);
   const ballMarkers = Array.from({ length: maxBalls }, (_, index) => history[index] ?? null);
 
@@ -45,6 +50,7 @@ export default function Scoreboard() {
             <span className="rounded bg-white/12 px-2 py-1">Balls {formatDeliveryCount(balls, maxBalls)}</span>
             <span className="rounded bg-white/12 px-2 py-1">Wkts {wickets}/{maxWickets}</span>
             <span className="rounded bg-white/12 px-2 py-1">{lastRuns === null ? '-' : `${lastRuns}R`}</span>
+            <span className="hidden rounded bg-white/12 px-2 py-1 sm:inline">{deliveryInfo?.field ?? selectedField.shortLabel}</span>
           </div>
           <div className="mt-2 grid grid-cols-6 gap-1">
             {ballMarkers.map((entry, index) => (
@@ -78,6 +84,18 @@ export default function Scoreboard() {
           <div className="mt-2 flex items-center justify-between gap-3">
             <span className="text-slate-300">Boundaries</span>
             <span className="font-black text-white">{boundaryCount}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="text-slate-300">Dots</span>
+            <span className="font-black text-white">{dotBalls}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="text-slate-300">Field</span>
+            <span className="font-black text-white">{deliveryInfo?.field ?? selectedField.shortLabel}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="text-slate-300">Saves</span>
+            <span className="font-black text-white">{fieldingSaves}</span>
           </div>
           <div className="mt-2 flex items-center justify-between gap-3">
             <span className="text-slate-300">Ball</span>

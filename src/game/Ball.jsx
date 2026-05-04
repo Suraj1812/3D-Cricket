@@ -11,10 +11,12 @@ import {
   createDeliveryVelocity,
   createHitVelocity,
   createShotSpin,
+  deliveryVariation,
   distanceFromCenter,
   evaluateShotTiming,
   getDeliveryProfile,
   getPitchSurface,
+  isLbwShout,
   isThreateningStumps,
   resolveBounce,
   speed2D,
@@ -24,6 +26,7 @@ import { useGameStore } from '../store/useGameStore.js';
 import { gameRefs } from '../utils/gameRefs.js';
 import { clamp, lerp } from '../utils/math.js';
 import { describeRuns } from '../utils/scoring.js';
+import { evaluateFieldingOutcome, getFieldPlan, getFieldPlanKey } from '../utils/fielding.js';
 
 const hiddenPosition = new THREE.Vector3(0, BALL_RADIUS, 7);
 const TRAIL_POINTS = 24;
@@ -44,6 +47,10 @@ function createSimulation() {
     shotMode: null,
     bouncesAfterHit: 0,
     deliveryBounces: 0,
+    fieldingHandled: false,
+    fieldPlanKey: 'balanced',
+    noBall: false,
+    freeHit: false,
     lastSwingRequestId: 0,
     hint: 'idle',
   };
@@ -134,22 +141,34 @@ export default function Ball() {
       requiredRuns: Math.max(0, store.targetScore - store.score),
       remainingBalls: Math.max(1, store.maxBalls - store.balls),
       lastBoundary: store.lastRuns >= 4,
+      wickets: store.wickets,
+      freeHit: store.freeHit,
+      momentum: store.momentum,
     };
     const surface = getPitchSurface(store.pitchCondition);
+    const fieldPlanKey = getFieldPlanKey(context);
+    const fieldPlan = getFieldPlan(fieldPlanKey);
+    const noBall = deliveryVariation(id + 91) > 0.94;
 
     Object.assign(sim, createSimulation(), {
       deliveryId: id,
       deliveryProfile: getDeliveryProfile(id, context),
       surface,
       phase: 'runup',
+      fieldPlanKey,
+      noBall,
+      freeHit: store.freeHit,
       lastSwingRequestId: store.swingRequestId,
     });
 
+    store.setFieldPlan(fieldPlanKey);
     store.setDeliveryInfo({
       name: sim.deliveryProfile.name,
       pace: sim.deliveryProfile.pace,
       surface: surface.name,
       length: sim.deliveryProfile.length,
+      field: fieldPlan.shortLabel,
+      freeHit: store.freeHit,
     });
     ballPosition.copy(RELEASE_POSITION);
     ballVelocity.set(0, 0, 0);
@@ -205,8 +224,33 @@ export default function Ball() {
     handleSwingRequest(sim, ballPosition, ballVelocity);
 
     if (!sim.hit && ballPosition.z > HIT_ZONE.maxZ + 1.1) {
-      const wicket = isThreateningStumps(ballPosition);
-      finishDelivery(sim, 0, 'Miss', wicket ? 'Bowled' : 'Beaten', { wicket });
+      const bowled = isThreateningStumps(ballPosition);
+      const lbw = !bowled && isLbwShout(ballPosition, sim.deliveryId);
+      const wicketType = bowled ? 'Bowled' : lbw ? 'LBW' : null;
+      const wide = !wicketType && Math.abs(ballPosition.x) > 1.08;
+
+      if (wide) {
+        finishDelivery(sim, 1, 'Leave', 'Wide', {
+          legalDelivery: false,
+          extraType: 'Wide',
+          extraRuns: 1,
+        });
+        return;
+      }
+
+      if (sim.noBall) {
+        finishDelivery(sim, 1, 'Miss', 'No ball', {
+          legalDelivery: false,
+          extraType: 'No ball',
+          extraRuns: 1,
+        });
+        return;
+      }
+
+      finishDelivery(sim, 0, 'Miss', sim.freeHit && wicketType ? 'Free hit: not out' : wicketType ?? 'Beaten', {
+        wicket: Boolean(wicketType) && !sim.freeHit,
+        wicketType,
+      });
       return;
     }
 
@@ -237,10 +281,49 @@ export default function Ball() {
     }
 
     const distance = distanceFromCenter(ballPosition);
+    const fieldingOutcome = evaluateFieldingOutcome({
+      position: ballPosition,
+      velocity: ballVelocity,
+      bounces: sim.bouncesAfterHit,
+      deliveryId: sim.deliveryId,
+      shotMode: sim.shotMode,
+      timing: sim.timing,
+      fieldPlanKey: sim.fieldPlanKey,
+    });
+
+    if (!sim.fieldingHandled && fieldingOutcome) {
+      sim.fieldingHandled = true;
+      ballVelocity.multiplyScalar(fieldingOutcome.wicket ? 0.08 : 0.16);
+      useGameStore.getState().registerImpact(fieldingOutcome.wicket ? 'wicket' : 'field');
+      const wicketProtected = fieldingOutcome.wicket && (sim.noBall || sim.freeHit);
+      const extraRuns = sim.noBall ? 1 : 0;
+      const description = wicketProtected
+        ? 'Free hit: catch does not count'
+        : sim.noBall
+          ? `No ball + ${fieldingOutcome.description}`
+          : fieldingOutcome.description;
+
+      finishDelivery(sim, fieldingOutcome.runs + extraRuns, sim.timing?.label, description, {
+        wicket: fieldingOutcome.wicket && !wicketProtected,
+        wicketType: wicketProtected ? null : fieldingOutcome.wicketType,
+        fielder: fieldingOutcome.fielder.role,
+        fieldEvent: wicketProtected ? null : fieldingOutcome.type,
+        legalDelivery: !sim.noBall,
+        extraType: sim.noBall ? 'No ball' : null,
+        extraRuns,
+      });
+      return;
+    }
 
     if (distance >= FIELD_RADIUS) {
       const runs = sim.bouncesAfterHit === 0 ? 6 : 4;
-      finishDelivery(sim, runs, sim.timing?.label, runs === 6 ? 'Six' : 'Four');
+      const extraRuns = sim.noBall ? 1 : 0;
+      finishDelivery(sim, runs + extraRuns, sim.timing?.label, sim.noBall ? `No ball + ${runs === 6 ? 'Six' : 'Four'}` : runs === 6 ? 'Six' : 'Four', {
+        legalDelivery: !sim.noBall,
+        extraType: sim.noBall ? 'No ball' : null,
+        extraRuns,
+        boundary: true,
+      });
       return;
     }
 
@@ -249,7 +332,12 @@ export default function Ball() {
 
     if (ballHasSettled || hitHasExpired) {
       const runs = calculateRunningRuns(distance, sim.timing?.quality);
-      finishDelivery(sim, runs, sim.timing?.label, describeRuns(runs));
+      const extraRuns = sim.noBall ? 1 : 0;
+      finishDelivery(sim, runs + extraRuns, sim.timing?.label, sim.noBall ? `No ball + ${describeRuns(runs)}` : describeRuns(runs), {
+        legalDelivery: !sim.noBall,
+        extraType: sim.noBall ? 'No ball' : null,
+        extraRuns,
+      });
     }
   }
 
@@ -312,6 +400,14 @@ export default function Ball() {
       shotMode: sim.shotMode,
       deliveryType: sim.deliveryProfile?.name,
       accuracy: sim.timing?.accuracy,
+      shot: sim.hit
+        ? {
+            x: Number(position.current.x.toFixed(2)),
+            z: Number(position.current.z.toFixed(2)),
+            aerial: sim.bouncesAfterHit === 0,
+            mode: sim.shotMode,
+          }
+        : null,
       ...extras,
     });
 

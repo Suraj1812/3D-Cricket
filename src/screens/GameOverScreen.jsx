@@ -7,6 +7,9 @@ export default function GameOverScreen() {
   const wickets = useGameStore((state) => state.wickets);
   const targetScore = useGameStore((state) => state.targetScore);
   const boundaryCount = useGameStore((state) => state.boundaryCount);
+  const fieldingSaves = useGameStore((state) => state.fieldingSaves);
+  const catches = useGameStore((state) => state.catches);
+  const dotBalls = useGameStore((state) => state.dotBalls);
   const bestShot = useGameStore((state) => state.bestShot);
   const matchResult = useGameStore((state) => state.matchResult);
   const history = useGameStore((state) => state.history);
@@ -34,6 +37,18 @@ export default function GameOverScreen() {
             <span className="block text-slate-400">Needed</span>
             <span className="mt-1 block text-xl font-black text-white">{Math.max(0, targetScore - score)}</span>
           </div>
+          <div className="rounded-md bg-white/10 p-3">
+            <span className="block text-slate-400">Dots</span>
+            <span className="mt-1 block text-xl font-black text-white">{dotBalls}</span>
+          </div>
+          <div className="rounded-md bg-white/10 p-3">
+            <span className="block text-slate-400">Catches</span>
+            <span className="mt-1 block text-xl font-black text-white">{catches}</span>
+          </div>
+          <div className="rounded-md bg-white/10 p-3">
+            <span className="block text-slate-400">Saves</span>
+            <span className="mt-1 block text-xl font-black text-white">{fieldingSaves}</span>
+          </div>
         </div>
         <div className="mt-4 grid grid-cols-6 gap-1.5">
           {Array.from({ length: 6 }, (_, index) => {
@@ -52,7 +67,7 @@ export default function GameOverScreen() {
                         : 'bg-white/12 text-slate-300'
                 }`}
               >
-                {entry ? (entry.wicket ? 'W' : entry.runs) : index + 1}
+                {entry ? (entry.wicket ? entry.wicketType?.slice(0, 1) ?? 'W' : entry.runs) : index + 1}
               </span>
             );
           })}

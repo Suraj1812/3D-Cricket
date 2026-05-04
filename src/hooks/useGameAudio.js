@@ -56,6 +56,7 @@ function playImpact(audioContext, impactType) {
     six: { frequency: 154, volume: 0.2, duration: 0.16, noise: 0.045 },
     four: { frequency: 132, volume: 0.16, duration: 0.11, noise: 0.035 },
     wicket: { frequency: 82, volume: 0.16, duration: 0.18, noise: 0.055 },
+    field: { frequency: 104, volume: 0.08, duration: 0.07, noise: 0.032 },
     run: { frequency: 96, volume: 0.06, duration: 0.05, noise: 0.018 },
     dot: { frequency: 72, volume: 0.045, duration: 0.04, noise: 0.012 },
   }[impactType] ?? {

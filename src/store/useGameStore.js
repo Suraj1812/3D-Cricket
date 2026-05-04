@@ -7,6 +7,10 @@ const TARGET_SCORE = 24;
 const MAX_WICKETS = 2;
 const PITCH_SEQUENCE = ['dry', 'green', 'dusty'];
 
+function clampScore(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 const initialState = {
   phase: 'start',
   matchId: 0,
@@ -21,6 +25,7 @@ const initialState = {
   swingRequestId: 0,
   ballState: 'idle',
   shotMode: SHOT_MODES.drive.id,
+  freeHit: false,
   pitchCondition: PITCH_SEQUENCE[0],
   cameraMode: 'bat',
   message: 'Ready',
@@ -29,8 +34,17 @@ const initialState = {
   lastOutcome: null,
   shotFeedback: null,
   deliveryInfo: null,
+  fieldPlan: 'balanced',
   history: [],
   boundaryCount: 0,
+  fieldingSaves: 0,
+  catches: 0,
+  dotBalls: 0,
+  extras: 0,
+  wides: 0,
+  noBalls: 0,
+  momentum: 52,
+  umpireCall: 'Play',
   bestShot: null,
   matchResult: null,
   impactEventId: 0,
@@ -51,6 +65,7 @@ export const useGameStore = create((set, get) => ({
       deliveryId: 1,
       ballState: 'runup',
       message: 'Bowler running in',
+      fieldPlan: 'balanced',
     });
   },
 
@@ -72,7 +87,7 @@ export const useGameStore = create((set, get) => ({
     set({
       deliveryId: state.deliveryId + 1,
       ballState: 'runup',
-      message: 'Bowler running in',
+      message: state.freeHit ? 'Free hit' : 'Bowler running in',
       lastTiming: null,
       lastRuns: null,
       lastOutcome: null,
@@ -117,6 +132,10 @@ export const useGameStore = create((set, get) => ({
     set({ deliveryInfo });
   },
 
+  setFieldPlan: (fieldPlan) => {
+    set({ fieldPlan });
+  },
+
   setCameraMode: (cameraMode) => {
     set({ cameraMode });
   },
@@ -140,7 +159,8 @@ export const useGameStore = create((set, get) => ({
     }
 
     const runs = outcome.runs ?? 0;
-    const nextBalls = state.balls + 1;
+    const legalDelivery = outcome.legalDelivery !== false;
+    const nextBalls = state.balls + (legalDelivery ? 1 : 0);
     const nextScore = state.score + runs;
     const nextWickets = state.wickets + (outcome.wicket ? 1 : 0);
     const targetReached = nextScore >= state.targetScore;
@@ -150,16 +170,35 @@ export const useGameStore = create((set, get) => ({
     const matchResult = targetReached ? 'won' : allOut ? 'allOut' : overDone ? 'lost' : null;
     const timing = outcome.timing ?? state.lastTiming;
     const resultLabel = outcome.description ?? describeRuns(runs);
-    const impactType = outcome.wicket ? 'wicket' : runs >= 6 ? 'six' : runs >= 4 ? 'four' : runs > 0 ? 'run' : 'dot';
+    const extraRuns = outcome.extraRuns ?? (outcome.extraType ? 1 : 0);
+    const impactType = outcome.extraType ? 'call' : outcome.wicket ? 'wicket' : runs >= 6 ? 'six' : runs >= 4 ? 'four' : runs > 0 ? 'run' : 'dot';
+    const nextFreeHit = outcome.extraType === 'No ball' ? true : legalDelivery ? false : state.freeHit;
+    const boundary = outcome.boundary ?? (!outcome.extraType && runs >= 4);
+    const momentumDelta =
+      (boundary ? 10 : runs * 3) +
+      (timing === 'Perfect' ? 8 : timing === 'Good' ? 4 : 0) -
+      (outcome.wicket ? 22 : 0) -
+      (runs === 0 && legalDelivery ? 6 : 0) +
+      (outcome.extraType ? 4 : 0);
+    const nextMomentum = clampScore(state.momentum + momentumDelta, 0, 100);
+    const umpireCall = outcome.extraType ?? (outcome.wicket ? 'Out' : runs >= 6 ? 'Six' : runs >= 4 ? 'Four' : 'Play');
     const historyEntry = {
       id: outcome.deliveryId,
       runs,
+      legal: legalDelivery,
+      extraType: outcome.extraType ?? null,
+      extraRuns,
       timing,
       wicket: Boolean(outcome.wicket),
-      boundary: runs >= 4,
+      boundary,
       mode: outcome.shotMode ?? state.shotMode,
       label: resultLabel,
       delivery: state.deliveryInfo?.name ?? outcome.deliveryType ?? null,
+      wicketType: outcome.wicketType ?? null,
+      fielder: outcome.fielder ?? null,
+      fieldEvent: outcome.fieldEvent ?? null,
+      fieldPlan: state.fieldPlan,
+      shot: outcome.shot ?? null,
       accuracy: outcome.accuracy ?? null,
     };
     const nextBestShot =
@@ -171,6 +210,7 @@ export const useGameStore = create((set, get) => ({
       score: nextScore,
       balls: nextBalls,
       wickets: nextWickets,
+      freeHit: nextFreeHit,
       phase: gameOver ? 'gameOver' : 'playing',
       completedDeliveryId: outcome.deliveryId,
       ballState: 'settled',
@@ -180,7 +220,15 @@ export const useGameStore = create((set, get) => ({
       lastOutcome: historyEntry,
       shotFeedback: resultLabel,
       history: [...state.history, historyEntry],
-      boundaryCount: state.boundaryCount + (runs >= 4 ? 1 : 0),
+      boundaryCount: state.boundaryCount + (boundary ? 1 : 0),
+      fieldingSaves: state.fieldingSaves + (outcome.fieldEvent === 'stop' ? 1 : 0),
+      catches: state.catches + (outcome.fieldEvent === 'catch' ? 1 : 0),
+      dotBalls: state.dotBalls + (runs === 0 && legalDelivery ? 1 : 0),
+      extras: state.extras + extraRuns,
+      wides: state.wides + (outcome.extraType === 'Wide' ? 1 : 0),
+      noBalls: state.noBalls + (outcome.extraType === 'No ball' ? 1 : 0),
+      momentum: nextMomentum,
+      umpireCall,
       bestShot: nextBestShot,
       matchResult,
       impactEventId: state.impactEventId + 1,

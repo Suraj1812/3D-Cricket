@@ -340,3 +340,11 @@ export function speed2D(velocity) {
 export function isThreateningStumps(position) {
   return Math.abs(position.x) <= 0.48 && position.y <= 0.86;
 }
+
+export function isLbwShout(position, deliveryId = 0) {
+  if (position.y < 0.28 || position.y > 1.16 || Math.abs(position.x) > 0.68) {
+    return false;
+  }
+
+  return deliveryVariation(deliveryId + 41) > 0.42;
+}
